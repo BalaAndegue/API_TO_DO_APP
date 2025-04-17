@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -60,7 +61,15 @@ def LoginView(request):
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
+            
+
             login(request, user)
+
+            #  Supprimer le token existant pour éviter les duplications
+            Token.objects.filter(user=user).delete()
+
+            #  Générer un nouveau token
+            token, created = Token.objects.get_or_create(user=user)
 
             return redirect('home')
         
@@ -71,6 +80,11 @@ def LoginView(request):
     return render(request, 'login.html')
 
 def LogoutView(request):
+
+    user = request.user
+
+     # Supprimer le token de l'utilisateur
+    Token.objects.filter(user=user).delete()
 
     logout(request)
 
@@ -117,6 +131,8 @@ def PasswordResetSent(request, reset_id):
         return render(request, 'password_reset_sent.html')
     else:
         # redirect to forgot password page if code does not exist
+        #rediriger vers la page forgot password si le code n'existe pas.
+
         messages.error(request, 'Invalid reset id')
         return redirect('forgot-password')
 
@@ -157,13 +173,15 @@ def ResetPassword(request, reset_id):
                 messages.success(request, 'Password reset. Proceed to login')
                 return redirect('login')
             else:
-                # redirect back to password reset page and display errors
+                
+                #rediriger vers la page password reset et afficher les erreurs 
                 return redirect('reset-password', reset_id=reset_id)
 
     
     except PasswordReset.DoesNotExist:
         
-        # redirect to forgot password page if code does not exist
+     
+        #rediriger vers la page forgot password si le code n'existe pas.
         messages.error(request, 'Invalid reset id')
         return redirect('forgot-password')
 
