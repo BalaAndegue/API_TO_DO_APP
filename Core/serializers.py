@@ -4,7 +4,7 @@ from .models import Task, Category, PasswordReset, User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'phone_number']
+        fields = ['id', 'username', 'email', 'first_name','last_name','phone_number']
 
 class TaskSerializer(serializers.ModelSerializer):
     class Meta:
