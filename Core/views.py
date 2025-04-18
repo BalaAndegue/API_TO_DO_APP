@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
-from django.core.mail import EmailMessage, send_mail
+from django.core.mail import EmailMessage
 from django.utils import timezone
 from django.urls import reverse
 from .models import *
@@ -113,13 +113,7 @@ def ForgotPassword(request):
                 settings.EMAIL_HOST_USER, # email sender
                 [email] # email  receiver 
             )
-            email_messages = send_mail(
-                'RESET PASSWORD',
-                email_body,
-                settings.EMAIL_HOST_USER,
-                {email}
-            )
-
+        
             email_message.fail_silently = True
             email_message.send()
 

@@ -150,3 +150,6 @@ EMAIL_USE_TLS = False
 EMAIL_HOST_USER = "apikey"  # SendGrid utilise "apikey" comme utilisateur
 EMAIL_HOST_PASSWORD = " je dois mettre ma cle ici"  # clé API SendGrid
 DEFAULT_FROM_EMAIL = "balaandeguefrancoislionnel@gmail.com" '''
+
+# MODEL USER
+AUTH_USER_MODEL = 'Core.User'  # Utilisation du modèle d'utilisateur personnalisé
