@@ -12,9 +12,12 @@ class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Ne renvoyer que les tâches de l'utilisateur connecté
-        return Task.objects.filter(user=self.request.user)
+        user = self.request.user
+        if user.is_anonymous: # Si l'utilisateur n'est pas authentifié, ne pas retourner de tâches
+            return Task.objects.none()  
+        return Task.objects.filter(user=user)
 
     def perform_create(self, serializer):
         # Associer la tâche à l'utilisateur connecté automatiquement
         serializer.save(user=self.request.user)
+

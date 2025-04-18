@@ -43,6 +43,27 @@ INSTALLED_APPS = [
     'Core',
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
+
+SWAGGER_SETTINGS = {
+    'LOGIN_URL': None,
+    'LOGOUT_URL': None,
+    'SECURITY_DEFINITIONS': {
+        'Token': {
+            'type': 'apiKey',
+            'in': 'header',
+            'name': 'Authorization',
+            'description': "Token <votre_token_ici>",
+        }
+    },
+    'USE_SESSION_AUTH': False,
+}
+
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
