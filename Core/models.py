@@ -14,7 +14,7 @@ class PasswordReset(models.Model):
 class User(AbstractUser):
     # LES AUTRES CHAMPS SONT DÉJÀ ^RESENTS DANS ABSTRACTSUSER
     phone_number = models.CharField(max_length=20, blank=True, null=True) # Numéro de téléphone de l'utilisateur
-
+    avatar = models.ImageField(verbose_name="avatar", blank=True, null=True) # Avatar de l'utilisateur
     def __str__(self):
         return self.username  
 
@@ -23,7 +23,7 @@ class Task(models.Model):
     id = models.AutoField(primary_key=True) # Utilise un champ AutoField pour l'identifiant unique de la tâche
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE) # Lien vers l'utilisateur qui a créé la tâche
     title = models.CharField(max_length=255) # Titre de la tâche
-    description = models.TextField() # Description de la tâche
+    description = models.TextField(blank=True) # Description de la tâche
     status = models.BooleanField(default=False) # Indique si la tâche est terminée ou non
     start_date = models.DateTimeField() # Date de début de la tâche
     end_date = models.DateTimeField() # Date de fin de la tâche
