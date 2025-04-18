@@ -21,7 +21,7 @@
           {% endfor %}
       {% endif %}
         
-      <form method="POST">
+      <form method="POST"  enctype="multipart/form-data">
 
         {% csrf_token %}
       
@@ -53,7 +53,15 @@
           <input type="password" required name="password">
           <span></span>
           <label>Password</label>
-        </div>    
+        </div>  
+        
+        
+         <!-- Champ pour la photo de profil -->
+        <div class="txt_field">
+          <input type="file" name="profile_photo" accept="image/*">  <!-- Accepte les images seulement -->
+          <span></span>
+          <label>Profile Photo</label>
+        </div>  
 
         <!-- <div class="pass">Forgot Password?</div> -->
         <input type="submit" value="Register">

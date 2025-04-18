@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
+#from django.contrib.auth.models import User
+from .models import User
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -22,6 +23,7 @@ def RegisterView(request):
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
+        profile_photo = request.FILES.get('profile_photo')  # Récupérer la photo
 
         user_data_has_error = False
 
@@ -45,8 +47,13 @@ def RegisterView(request):
                 last_name=last_name,
                 email=email, 
                 username=username,
-                password=password
+                password=password,
+                avatar = profile_photo
             )
+
+            if profile_photo:  # Vérifier si une photo a été envoyée
+                new_user.profile_photo = profile_photo
+                new_user.save()
             messages.success(request, "Account created. Login now")
             return redirect('login')
 
@@ -57,6 +64,7 @@ def LoginView(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
+        
 
         user = authenticate(request, username=username, password=password)
 
@@ -113,13 +121,12 @@ def ForgotPassword(request):
                 settings.EMAIL_HOST_USER, # email sender
                 [email] # email  receiver 
             )
-            email_messages = send_mail(
+            '''email_messages = send_mail(
                 'RESET PASSWORD',
                 email_body,
                 settings.EMAIL_HOST_USER,
                 {email}
-            )
-
+            )'''
             email_message.fail_silently = True
             email_message.send()
 
