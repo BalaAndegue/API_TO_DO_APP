@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, send_mail
 from django.utils import timezone
 from django.urls import reverse
 from .models import *
@@ -113,6 +113,12 @@ def ForgotPassword(request):
                 settings.EMAIL_HOST_USER, # email sender
                 [email] # email  receiver 
             )
+            email_messages = send_mail(
+                'RESET PASSWORD',
+                email_body,
+                settings.EMAIL_HOST_USER,
+                {email}
+            )
 
             email_message.fail_silently = True
             email_message.send()
@@ -139,9 +145,12 @@ def PasswordResetSent(request, reset_id):
 def ResetPassword(request, reset_id):
 
     try:
+        #verifie si l'identifiant de reinitialisation existe
         password_reset_id = PasswordReset.objects.get(reset_id=reset_id)
 
         if request.method == "POST":
+
+            #verifie si les mots de passe eet ceux de confirmations sont les meme
             password = request.POST.get('password')
             confirm_password = request.POST.get('confirm_password')
 
@@ -150,11 +159,13 @@ def ResetPassword(request, reset_id):
             if password != confirm_password:
                 passwords_have_error = True
                 messages.error(request, 'Passwords do not match')
-
+            
+            #on verifie la taille du mot de passe
             if len(password) < 5:
                 passwords_have_error = True
                 messages.error(request, 'Password must be at least 5 characters long')
-
+            
+            #on verifie la date d'expiration de la requete de reinitialisation
             expiration_time = password_reset_id.created_when + timezone.timedelta(minutes=10)
 
             if timezone.now() > expiration_time:
