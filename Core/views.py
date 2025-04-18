@@ -1,6 +1,11 @@
 from django.shortcuts import render, redirect
 #from django.contrib.auth.models import User
-from .models import User
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from .models import User, Task
+from .serializers import UserSerializer, TaskSerializer,  InvitedUserOnTaskSerializer
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -11,10 +16,11 @@ from django.utils import timezone
 from django.urls import reverse
 from .models import *
 
+
 @login_required
 def Home(request):
     return render(request, 'index.html')
-
+'''
 def RegisterView(request):
 
     if request.method == "POST":
@@ -24,6 +30,8 @@ def RegisterView(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         profile_photo = request.FILES.get('profile_photo')  # Récupérer la photo
+
+        
 
         user_data_has_error = False
 
@@ -58,6 +66,16 @@ def RegisterView(request):
             return redirect('login')
 
     return render(request, 'register.html')
+'''
+
+@api_view(['POST'])
+def RegisterView(request):
+    serializer = UserSerializer(data=request.data)  # Valider les données utilisateur
+    if serializer.is_valid():
+        serializer.save()  # Enregistrer l'utilisateur
+        return Response({"message": "Utilisateur créé avec succès", "user": serializer.data}, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 def LoginView(request):
 
@@ -204,3 +222,51 @@ def ResetPassword(request, reset_id):
         return redirect('forgot-password')
 
     return render(request, 'reset_password.html')
+
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])  # 🔒 L'utilisateur doit être connecté
+def create_task(request):
+    serializer = TaskSerializer(data=request.data)
+    if serializer.is_valid():
+        task = serializer.save(user=request.user)  # Associer la tâche à l’utilisateur connecté
+        return Response({"message": "Tâche créée avec succès", "task": serializer.data}, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])  # 🔒 L'utilisateur doit être connecté
+def delete_task(request, task_id):
+    try:
+        task = Task.objects.get(id=task_id)
+        if task.user == request.user:  # 🔒 Vérifier que l'utilisateur est bien le créateur
+            task.delete()
+            return Response({"message": "Tâche supprimée"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"error": "Vous n'avez pas la permission de supprimer cette tâche."}, status=status.HTTP_403_FORBIDDEN)
+    except Task.DoesNotExist:
+        return Response({"error": "Tâche introuvable"}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])  # 🔒 Seuls les utilisateurs connectés peuvent inviter
+def invite_user(request):
+    serializer = InvitedUserOnTaskSerializer(data=request.data, context={"request": request})
+    if serializer.is_valid():
+        invitation = serializer.save()
+        return Response({"message": "Utilisateur invité avec succès", "invitation": serializer.data}, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])  # 🔒 Seuls les invités peuvent accepter ou refuser
+def accept_invitation(request, invitation_id):
+    try:
+        invitation = InvitedUserOnTask.objects.get(id=invitation_id)
+        if invitation.invited_user == request.user:  # 🔒 Vérifier que l’utilisateur est bien celui invité
+            invitation.accepted = True
+            invitation.save()
+            return Response({"message": "Invitation acceptée"}, status=status.HTTP_200_OK)
+        return Response({"error": "Vous ne pouvez pas accepter cette invitation."}, status=status.HTTP_403_FORBIDDEN)
+    except InvitedUserOnTask.DoesNotExist:
+        return Response({"error": "Invitation introuvable"}, status=status.HTTP_404_NOT_FOUND)

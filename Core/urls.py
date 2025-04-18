@@ -9,4 +9,8 @@ urlpatterns = [
     path('forgot-password/', views.ForgotPassword, name='forgot-password'),
     path('password-reset-sent/<str:reset_id>/', views.PasswordResetSent, name='password-reset-sent'),
     path('reset-password/<str:reset_id>/', views.ResetPassword, name='reset-password'),
+    path('api/task/create/', views.create_task, name='create_task'),  # Créer une tâche
+    path('api/task/delete/<int:task_id>/', views.delete_task, name='delete_task'),  # Supprimer une tâche
+
+
 ]
