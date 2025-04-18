@@ -1,0 +1,19 @@
+# Fichiers d'environnement
+.env
+.venv/
+*.env
+
+# Pycache et fichiers temporaires
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+
+# VSCode
+.vscode/
+
+# Migrations (si tu veux les ignorer)
+# */migrations/
+
+# Fichiers de test
+*.pytest_cache/
