@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-djv&69rh8kc50$*5@(w=uuq^sc+!@ru-br!aza6lr%m)84z3fu'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = []
 
@@ -60,7 +60,7 @@ ROOT_URLCONF = 'AuthenticationProject.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['templates'],
+        'DIRS': [os.path.join(BASE_DIR, 'Core/templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
