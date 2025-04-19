@@ -11,8 +11,10 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
 import os
 
+load_dotenv(dotenv_path=".config.env")  # 🔥 Charge les variables depuis "config.env"
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -39,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework.authtoken',  # Ajout de AuthToke
+    'rest_framework.authtoken',  # Ajout de AuthToken
     'Core',
 ]
 
@@ -137,10 +139,17 @@ LOGIN_URL = 'login'
 EMAIL_HOST="smtp.gmail.com"
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
-EMAIL_HOST_USER="balaandeguefrancoislionnel@gmail.com"
-EMAIL_HOST_PASSWORD="ajmx pjka zoyb jddr"
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 AUTH_USER_MODEL = "Core.User"
+
+
+
+
+
+
+
 
 
 #DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -1,5 +1,14 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from Core.viewset.taskviewset import *
+from Core.viewset.userviewset  import *
 from . import views
+
+
+router = DefaultRouter()
+router.register(r'tasks', TaskViewSet, basename='task')  # 🚀 Endpoint CRUD des tâches
+router.register(r'invitations', InvitedUserOnTaskViewSet, basename='invitation')  # 🔄 Gestion des invitations
+
 
 urlpatterns = [
     path('', views.Home, name='home'),
@@ -13,4 +22,15 @@ urlpatterns = [
     path('api/task/delete/<int:task_id>/', views.delete_task, name='delete_task'),  # Supprimer une tâche
 
 
+
+
+    path("auth/register/", RegisterAPIView.as_view(), name="register"),  # ✅ Inscription utilisateur
+    path("auth/login/", LoginAPIView.as_view(), name="login"),  # ✅ Connexion utilisateur
+    path("auth/logout/", LogoutAPIView.as_view(), name="logout"),  # ✅ Déconnexion utilisateur
+    path("auth/forgot-password/", ForgotPasswordAPIView.as_view(), name="forgot-password"),  # 🔄 Demande de reset password
+    path("auth/reset-password/<str:reset_id>/", ResetPasswordAPIView.as_view(), name="reset-password"),  # 🚀 Réinitialisation du mot de passe
+    path("", include(router.urls)),  # ✅ Inclusion des ViewSets (Tasks & Invitations)
+
+
 ]
+

@@ -1,5 +1,6 @@
-from django.shortcuts import render, redirect
+
 #from django.contrib.auth.models import User
+from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -9,6 +10,7 @@ from .serializers import UserSerializer, TaskSerializer,  InvitedUserOnTaskSeria
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.conf import settings
 from django.core.mail import EmailMessage, send_mail
@@ -17,10 +19,13 @@ from django.urls import reverse
 from .models import *
 
 
+
+
+
 @login_required
 def Home(request):
     return render(request, 'index.html')
-'''
+
 def RegisterView(request):
 
     if request.method == "POST":
@@ -66,16 +71,6 @@ def RegisterView(request):
             return redirect('login')
 
     return render(request, 'register.html')
-'''
-
-@api_view(['POST'])
-def RegisterView(request):
-    serializer = UserSerializer(data=request.data)  # Valider les données utilisateur
-    if serializer.is_valid():
-        serializer.save()  # Enregistrer l'utilisateur
-        return Response({"message": "Utilisateur créé avec succès", "user": serializer.data}, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 def LoginView(request):
 
@@ -270,3 +265,15 @@ def accept_invitation(request, invitation_id):
         return Response({"error": "Vous ne pouvez pas accepter cette invitation."}, status=status.HTTP_403_FORBIDDEN)
     except InvitedUserOnTask.DoesNotExist:
         return Response({"error": "Invitation introuvable"}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+
+
+
+
+
+
+
+
