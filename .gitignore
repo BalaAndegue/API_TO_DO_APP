@@ -1,7 +1,8 @@
 # Fichiers d'environnement
 .env
-.venv/
 *.env
+.venv/
+venv/
 
 # Pycache et fichiers temporaires
 __pycache__/

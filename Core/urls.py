@@ -16,7 +16,16 @@ urlpatterns = [
     path('api/register/', RegisterAPIView.as_view(), name='api-register'),
     path('api/login/', LoginAPIView.as_view(), name='api-login'),
     path('api/logout/', LogoutAPIView.as_view(), name='api-logout'),
+
+# test frontend
+    path('login/', views.LoginView, name='login'),
+    path('logout/', views.logout, name='logout'),
+    path('register/', views.RegisterView, name='register'),
     path('forgot-password/', views.ForgotPassword, name='forgot-password'),
     path('password-reset-sent/<str:reset_id>/', views.PasswordResetSent, name='password-reset-sent'),
     path('reset-password/<str:reset_id>/', views.ResetPassword, name='reset-password'),
+
+    # front end tsks
+    path('tasks-list/', views.task_list, name='tasks-list'),
+    path('tasks-create/', views.create_task, name='tasks-create'),
 ]

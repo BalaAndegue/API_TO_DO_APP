@@ -1,0 +1,87 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="utf-8">
+  <title>Create Task</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+
+<body>
+  <div class="center">
+    <h1>Create New Task</h1>
+
+    {% if messages %}
+      {% for message in messages %}
+        {% if message.tags == 'error' %}
+          <center><h4 style="color: firebrick;">{{ message }}</h4></center>
+        {% else %}
+          <center><h4 style="color: dodgerblue;">{{ message }}</h4></center>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    <form method="POST">
+      {% csrf_token %}
+
+      <div class="txt_field">
+        <input type="text" required name="title">
+        <span></span>
+        <label>Title</label>
+      </div>
+      <div class="txt_field">
+        <input type="text" required name="category">
+        <span></span>
+        <label>Category</label>
+      </div>
+
+      <div class="txt_field" style="height: auto;">
+        <label for="description" style="position: static; font-size: 14px;">Description</label>
+        <textarea id="description" name="description" required rows="4"
+          style="width: 100%; padding: 10px; border: 1wpx solid #ccc; border-radius: 5px; resize: vertical;"></textarea>
+      </div>
+      
+      <div class="txt_field">
+        <input type="datetime-local" required name="start_date">
+        <span></span>
+        <label style="top: -20px;">Start Date</label>
+      </div>
+
+      <div class="txt_field">
+        <input type="datetime-local" required name="end_date">
+        <span></span>
+        <label style="top: -20px;">End Date</label>
+      </div>
+
+      <div class="txt_field">
+        <select name="priority" required style="width: 100%; padding: 10px; border-radius: 5px; border: none;">
+          <option value="">-- Priority --</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <label style="top: -20px;">Priority</label>
+      </div>
+
+      <div class="txt_field">
+        <input type="checkbox" name="reminder" id="reminder">
+        <label for="reminder" style="position: static;">Enable Reminder</label>
+      </div>
+
+      <div class="txt_field">
+        <input type="number" name="time_reminder" min="0" value="0">
+        <span></span>
+        <label>Reminder Time (min before)</label>
+      </div>
+
+      <input type="submit" value="Create Task">
+
+      <div class="signup_link">
+        <a href="{% url 'tasks-list' %}">← Back to task list</a>
+      </div>
+    </form>
+  </div>
+</body>
+
+</html>

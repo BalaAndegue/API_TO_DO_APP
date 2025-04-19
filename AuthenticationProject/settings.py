@@ -144,6 +144,10 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR,  'staticfiles')
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'), )
 
+
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
@@ -157,20 +161,6 @@ EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER="balaandeguefrancoislionnel@gmail.com"
 EMAIL_HOST_PASSWORD="ajmx pjka zoyb jddr"
-
-
-#DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-'''EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-
-LOGIN_URL = 'login'
-EMAIL_HOST = "smtp.sendgrid.net"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_USE_TLS = False
-EMAIL_HOST_USER = "apikey"  # SendGrid utilise "apikey" comme utilisateur
-EMAIL_HOST_PASSWORD = " je dois mettre ma cle ici"  # clé API SendGrid
-DEFAULT_FROM_EMAIL = "balaandeguefrancoislionnel@gmail.com" '''
 
 # MODEL USER
 AUTH_USER_MODEL = 'Core.User'  # Utilisation du modèle d'utilisateur personnalisé

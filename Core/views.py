@@ -1,14 +1,16 @@
 from django.shortcuts import render, redirect
 from .models import User
 from rest_framework.authtoken.models import Token
+from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
-from django.core.mail import EmailMessage, send_mail
+from django.core.mail import EmailMessage
 from django.utils import timezone
 from django.urls import reverse
 from .models import *
+import requests
 
 @login_required
 def Home(request):
@@ -38,9 +40,8 @@ def RegisterView(request):
             user_data_has_error = True
             messages.error(request, "Password must be at least 5 characters")
 
-        if user_data_has_error:
-            return redirect('register')
-        else:
+        if not user_data_has_error:
+
             new_user = User.objects.create_user(
                 first_name=first_name,
                 last_name=last_name,
@@ -51,7 +52,7 @@ def RegisterView(request):
             )
 
             if profile_photo:  # Vérifier si une photo a été envoyée
-                new_user.profile_photo = profile_photo
+                new_user.pavatar = profile_photo
                 new_user.save()
             messages.success(request, "Account created. Login now")
             return redirect('login')
@@ -203,3 +204,55 @@ def ResetPassword(request, reset_id):
         return redirect('forgot-password')
 
     return render(request, 'reset_password.html')
+
+@login_required
+def task_list(request):
+    # Crée un token si inexistant
+    token, _ = Token.objects.get_or_create(user=request.user)
+
+    headers = {'Authorization': f'Token {token}'}
+
+    response = requests.get('http://localhost:8000/api/tasks/', headers=headers)
+
+    if response.status_code == 200:
+        tasks = response.json()
+    else:
+        tasks = []
+
+    return render(request, 'tasks/task_list.html', {'tasks': tasks})
+
+@login_required
+def create_task(request):
+    if request.method == 'POST':
+        token = Token.objects.get(user=request.user).key
+        headers = {'Authorization': f'Token {token}'}
+        data = {
+            'title': request.POST.get('title'),
+            'category': request.POST.get('category'),  # Assurez-vous que la catégorie est envoyée correctement
+            'description': request.POST.get('description'),
+            'start_date': request.POST.get('start_date'),
+            'end_date': request.POST.get('end_date'),
+            'priority': request.POST.get('priority'),
+        }
+        response = requests.post('http://localhost:8000/api/tasks/', headers=headers, data=data)
+
+        if response.status_code == 201:
+            return redirect('task-list')
+        else:
+            messages.error(request, 'Erreur lors de la création')
+
+    return render(request, 'tasks/create_task.html')
+
+@login_required
+def delete_task(request, task_id):
+    token = Token.objects.get(user=request.user).key
+    headers = {'Authorization': f'Token {token}'}
+
+    response = requests.delete(f'http://localhost:8000/api/tasks/{task_id}/', headers=headers)
+
+    if response.status_code == 204:
+        messages.success(request, 'Tâche supprimée')
+    else:
+        messages.error(request, 'Erreur de suppression')
+
+    return redirect('task-list')

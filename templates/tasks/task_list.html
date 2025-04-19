@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="utf-8">
+  <title>My Tasks</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+
+<body>
+  <div class="center">
+    <h1>My Tasks</h1>
+
+    {% if messages %}
+      {% for message in messages %}
+        {% if message.tags == 'error' %}
+          <center><h4 style="color: firebrick;">{{ message }}</h4></center>
+        {% else %}
+          <center><h4 style="color: dodgerblue;">{{ message }}</h4></center>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% if tasks %}
+      <ul style="text-align: left; padding-left: 0;">
+        {% for task in tasks %}
+          <li style="margin-bottom: 10px; list-style: none; background: #f4f4f4; padding: 10px; border-radius: 8px;">
+            <strong>{{ task.title }}</strong><br>
+            {{ task.description }}<br>
+            <small>Status: 
+              {% if task.status %}<span style="color: green;">Done</span>
+              {% else %}<span style="color: red;">Pending</span>{% endif %}
+            </small><br>
+            <small>Priority: {{ task.priority|title }}</small><br>
+            <small>From {{ task.start_date }} to {{ task.end_date }}</small>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="text-align: center;">No tasks found.</p>
+    {% endif %}
+
+    <div class="signup_link" style="margin-top: 20px;">
+      <a href="{% url 'tasks-create' %}">+ Create New Task</a>
+    </div>
+
+    <div class="signup_link" style="margin-top: 10px;">
+      <a href="{% url 'logout' %}">Logout</a>
+    </div>
+
+  </div>
+</body>
+
+</html>
