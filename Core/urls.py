@@ -11,6 +11,7 @@ router.register(r'invitations', InvitedUserOnTaskViewSet, basename='invitation')
 
 
 urlpatterns = [
+    #pour les test en local
     path('', views.Home, name='home'),
     path('register/', views.RegisterView, name='register'),
     path('login/', views.LoginView, name='login'),
@@ -23,13 +24,13 @@ urlpatterns = [
 
 
 
-
-    path("auth/register/", RegisterAPIView.as_view(), name="register"),  # ✅ Inscription utilisateur
-    path("auth/login/", LoginAPIView.as_view(), name="login"),  # ✅ Connexion utilisateur
-    path("auth/logout/", LogoutAPIView.as_view(), name="logout"),  # ✅ Déconnexion utilisateur
-    path("auth/forgot-password/", ForgotPasswordAPIView.as_view(), name="forgot-password"),  # 🔄 Demande de reset password
-    path("auth/reset-password/<str:reset_id>/", ResetPasswordAPIView.as_view(), name="reset-password"),  # 🚀 Réinitialisation du mot de passe
-    path("", include(router.urls)),  # ✅ Inclusion des ViewSets (Tasks & Invitations)
+    #pour les api
+    path("auth/register/", RegisterAPIView.as_view(), name="aregister"),  #Inscription utilisateur
+    path("auth/login/", LoginAPIView.as_view(), name="alogin"),  # Connexion utilisateur
+    path("auth/logout/", LogoutAPIView.as_view(), name="alogout"),  #  Déconnexion utilisateur
+    path("auth/forgot-password/", ForgotPasswordAPIView.as_view(), name="aforgot-password"),  #  Demande de reset password
+    path("auth/reset-password/<str:reset_id>/", ResetPasswordAPIView.as_view(), name="areset-password"),  #  Réinitialisation du mot de passe
+    path("", include(router.urls)),  # Inclusion des ViewSets (Tasks & Invitations)
 
 
 ]

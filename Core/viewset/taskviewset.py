@@ -7,7 +7,7 @@ from ..serializers import  TaskSerializer,  InvitedUserOnTaskSerializer
 
 
 
-# ✅ Gestion des tâches avec `ViewSet`
+#  Gestion des tâches avec `ViewSet`
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
@@ -23,7 +23,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         task.delete()
         return Response({"message": "Tâche supprimée"}, status=status.HTTP_204_NO_CONTENT)
 
-# ✅ Invitations aux tâches avec `ViewSet`
+#  Invitations aux tâches avec `ViewSet`
 class InvitedUserOnTaskViewSet(viewsets.ModelViewSet):
     queryset = InvitedUserOnTask.objects.all()
     serializer_class = InvitedUserOnTaskSerializer

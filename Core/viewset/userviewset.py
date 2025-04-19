@@ -18,7 +18,7 @@ from ..models import *
 
 
 
-# ✅ Enregistrement utilisateur
+#  Enregistrement utilisateur
 class RegisterAPIView(APIView):
     def post(self, request):
         serializer = UserSerializer(data=request.data)
@@ -27,7 +27,7 @@ class RegisterAPIView(APIView):
             return Response({"message": "Utilisateur créé avec succès", "user": serializer.data}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# ✅ Authentification utilisateur
+#  Authentification utilisateur
 class LoginAPIView(APIView):
     def post(self, request):
         username = request.data.get("username")
@@ -41,7 +41,7 @@ class LoginAPIView(APIView):
             return Response({"message": "Connexion réussie", "token": token.key}, status=status.HTTP_200_OK)
         return Response({"error": "Identifiants incorrects"}, status=status.HTTP_400_BAD_REQUEST)
 
-# ✅ Déconnexion utilisateur
+#  Déconnexion utilisateur
 class LogoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -50,7 +50,7 @@ class LogoutAPIView(APIView):
         logout(request)
         return Response({"message": "Déconnexion réussie"}, status=status.HTTP_200_OK)
 
-# ✅ Demande de réinitialisation de mot de passe
+#  Demande de réinitialisation de mot de passe
 class ForgotPasswordAPIView(APIView):
     def post(self, request):
         email = request.data.get('email')
@@ -67,7 +67,7 @@ class ForgotPasswordAPIView(APIView):
         except User.DoesNotExist:
             return Response({"error": f"Aucun utilisateur trouvé avec l'email {email}"}, status=status.HTTP_404_NOT_FOUND)
 
-# ✅ Réinitialisation du mot de passe
+#  Réinitialisation du mot de passe
 class ResetPasswordAPIView(APIView):
     def post(self, request, reset_id):
         try:
