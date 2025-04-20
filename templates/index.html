@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!--<!DOCTYPE html>
 <html lang="en">
 <head>
     {% load static %}
@@ -11,5 +11,940 @@
     <br><br>
     
     <a href="{% url 'logout' %}">Logout</a>
+</body>
+</html>
+
+-->
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loterie VIP Premium</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #ff3366;
+            --secondary-color: #ffcc00;
+            --tertiary-color: #6200ea;
+            --accent-color: #00e676;
+            --dark-bg: #121212;
+            --light-text: #ffffff;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --gradient-bg: linear-gradient(135deg, var(--tertiary-color), var(--primary-color), var(--secondary-color));
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--dark-bg);
+            color: var(--light-text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .background-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-bg);
+            opacity: 0.5;
+            z-index: -1;
+        }
+
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--secondary-color);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 1.5rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 10;
+            backdrop-filter: blur(8px);
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--light-text);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo i {
+            color: var(--secondary-color);
+            margin-right: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        .welcome-user {
+            text-align: right;
+        }
+
+        .user-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .user-name i {
+            margin-right: 0.5rem;
+            color: var(--secondary-color);
+        }
+
+        .vip-tag {
+            display: inline-block;
+            background: var(--primary-color);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(255, 51, 102, 0.5);
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .announcement {
+            text-align: center;
+            margin: 3rem 0;
+            animation: fadeInUp 1s;
+        }
+
+        .announcement h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--light-text);
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .special-text {
+            position: relative;
+            display: inline-block;
+            color: var(--secondary-color);
+        }
+
+        .special-text::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--primary-color);
+            transform: scaleX(0);
+            transform-origin: bottom right;
+            transition: transform 0.3s;
+            animation: expandLine 2s infinite alternate;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--light-text);
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .trophy-container {
+            margin: 3rem 0;
+            display: flex;
+            justify-content: center;
+            position: relative;
+        }
+
+        .trophy {
+            font-size: 5rem;
+            color: var(--secondary-color);
+            animation: trophyBounce 3s infinite;
+            text-shadow: 0 0 20px rgba(255, 204, 0, 0.8);
+            position: relative;
+            z-index: 1;
+        }
+
+        .trophy-light {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(var(--secondary-color), transparent 70%);
+            opacity: 0.5;
+            animation: pulsate 2s infinite;
+        }
+
+        .prize-selection {
+            text-align: center;
+            margin: 2rem 0 4rem;
+            animation: fadeInUp 1.2s;
+        }
+
+        .prize-selection h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            color: var(--light-text);
+        }
+
+        .gift-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .gift-box {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .gift {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.8s;
+        }
+
+        .gift-front, .gift-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .gift-front {
+            background: linear-gradient(45deg, var(--primary-color), var(--tertiary-color));
+            border: 3px solid var(--secondary-color);
+            font-size: 4rem;
+        }
+
+        .gift-front::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: var(--secondary-color);
+            transform: translateY(-50%);
+        }
+
+        .gift-front::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 20px;
+            height: 100%;
+            background: var(--secondary-color);
+            transform: translateX(-50%);
+        }
+
+        .gift-number {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--secondary-color);
+            color: var(--dark-bg);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1rem;
+            z-index: 1;
+        }
+
+        .gift-back {
+            background: linear-gradient(45deg, var(--secondary-color), var(--accent-color));
+            transform: rotateY(180deg);
+            padding: 1rem;
+        }
+
+        .gift-back i {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .gift-back h3 {
+            font-size: 1.2rem;
+            text-align: center;
+            margin-top: 0.5rem;
+            color: var(--dark-bg);
+        }
+
+        .flipped {
+            transform: rotateY(180deg);
+        }
+
+        .modal-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 3rem;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            transform: scale(0.8);
+            transition: transform 0.5s;
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 0 50px rgba(255, 51, 102, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .modal-active .modal-content {
+            transform: scale(1);
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--primary-color);
+            opacity: 0.8;
+        }
+
+        .prize-icon {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+        }
+
+        .win .prize-icon {
+            color: var(--accent-color);
+            animation: bounceIn 1s;
+        }
+
+        .lose .prize-icon {
+            color: #ff5252;
+            animation: shake 0.5s;
+        }
+
+        .prize-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: var(--light-text);
+        }
+
+        .win .prize-title {
+            color: var(--accent-color);
+        }
+
+        .lose .prize-title {
+            color: #ff5252;
+        }
+
+        .prize-desc {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: var(--light-text);
+            opacity: 0.9;
+        }
+
+        .close-btn {
+            padding: 0.8rem 2rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+
+        .close-btn:hover {
+            background: var(--tertiary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(98, 0, 234, 0.5);
+        }
+
+        footer {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            text-align: center;
+            margin-top: 4rem;
+            position: relative;
+            z-index: 10;
+            border-top: 2px solid var(--primary-color);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--light-text);
+            margin-bottom: 1rem;
+            letter-spacing: 2px;
+        }
+
+        .footer-text {
+            color: var(--light-text);
+            opacity: 0.8;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .social-icons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .social-icons a {
+            color: var(--light-text);
+            font-size: 1.2rem;
+            transition: color 0.3s;
+        }
+
+        .social-icons a:hover {
+            color: var(--primary-color);
+        }
+
+        .copyright {
+            font-size: 0.8rem;
+            color: var(--light-text);
+            opacity: 0.6;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes trophyBounce {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20px) rotate(5deg);
+            }
+        }
+
+        @keyframes pulsate {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+        }
+
+        @keyframes expandLine {
+            0% {
+                transform: scaleX(0);
+                transform-origin: bottom right;
+            }
+            100% {
+                transform: scaleX(1);
+                transform-origin: bottom left;
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            20%, 60% {
+                transform: translateX(-10px);
+            }
+            40%, 80% {
+                transform: translateX(10px);
+            }
+        }
+
+        @keyframes floatParticle {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+            100% {
+                transform: translateY(-1000px) rotate(360deg);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+            }
+
+            .welcome-user {
+                text-align: center;
+            }
+
+            .user-name {
+                justify-content: center;
+            }
+
+            .announcement h1 {
+                font-size: 2rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+
+            .gift-container {
+                gap: 1rem;
+            }
+
+            .gift-box {
+                width: 150px;
+                height: 150px;
+            }
+
+            .modal-content {
+                padding: 2rem;
+                max-width: 90%;
+            }
+
+            .prize-icon {
+                font-size: 4rem;
+            }
+
+            .prize-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .announcement h1 {
+                font-size: 1.5rem;
+            }
+
+            .gift-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .gift-box {
+                width: 160px;
+                height: 160px;
+            }
+
+            .trophy {
+                font-size: 4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-gradient"></div>
+    <div class="particles-container" id="particlesContainer"></div>
+
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-gem"></i> Loterie VIP
+            </div>
+            <div class="welcome-user">
+                <div class="user-name">
+                    <i class="fas fa-crown"></i> {% if request.user.is_authenticated %}
+                        <span id="userName">{{ request.user.username }}</span>
+                    {% else %}
+                        <span id="userName">Invité</span>
+                    {% endif %}
+                </div>
+                <div class="vip-tag"><a href="{% url 'logout' %}">Logout</a></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="announcement">
+            <h1>Vous pouvez être <span class="special-text">l'heureux gagnant</span> de ce soir !</h1>
+            <p class="subtitle">Des prix exceptionnels vous attendent. Tentez votre chance maintenant !</p>
+        </div>
+
+        <div class="trophy-container">
+            <div class="trophy-light"></div>
+            <div class="trophy">🏆</div>
+        </div>
+
+        <div class="prize-selection">
+            <h2>Choisissez l'un de nos cadeaux mystère</h2>
+            <div class="gift-container">
+                <div class="gift-box" onclick="selectGift(0)">
+                    <div class="gift" id="gift0">
+                        <div class="gift-front">
+                            <div class="gift-number">1</div>
+                        </div>
+                        <div class="gift-back">
+                            <i class="fas fa-mobile-alt"></i>
+                            <h3>iPhone 15 Pro qu'hein</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="gift-box" onclick="selectGift(1)">
+                    <div class="gift" id="gift1">
+                        <div class="gift-front">
+                            <div class="gift-number">2</div>
+                        </div>
+                        <div class="gift-back">
+                            <i class="fas fa-car"></i>
+                            <h3>Mercedes AMG GT oukouuu</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="gift-box" onclick="selectGift(2)">
+                    <div class="gift" id="gift2">
+                        <div class="gift-front">
+                            <div class="gift-number">3</div>
+                        </div>
+                        <div class="gift-back">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <h3>50 000 kolo</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="gift-box" onclick="selectGift(3)">
+                    <div class="gift" id="gift3">
+                        <div class="gift-front">
+                            <div class="gift-number">4</div>
+                        </div>
+                        <div class="gift-back">
+                            <i class="fas fa-sad-tear"></i>
+                            <h3>Wait ...</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-container" id="prizeModal">
+        <div class="modal-content" id="modalContent">
+            <i class="prize-icon fas fa-question" id="prizeIcon"></i>
+            <h2 class="prize-title" id="prizeTitle">Titre du prix</h2>
+            <p class="prize-desc" id="prizeDesc">Description du prix</p>
+            <button class="close-btn" onclick="closeModal()">Fermer</button>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">LOTERIE VIP</div>
+            <p class="footer-text">Les meilleurs prix pour nos membres VIP</p>
+            <div class="social-icons">
+                <a href="#"><i class="fab fa-facebook"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-youtube"></i></a>
+            </div>
+            <p class="copyright">© 2025 Loterie VIP - Tous droits réservés</p>
+            <p class="copyright"><a href="balaandeguefrancoislionnel@gmail.com">BALA ANDEGUE FRANCOIS LIONNEL</a></p>
+        </div>
+    </footer>
+
+    <script>
+        // Configuration utilisateur
+        const username = "Lionnel";
+        document.getElementById("userName").textContent = username;
+
+        // Création des particules d'arrière-plan
+        const particlesContainer = document.getElementById('particlesContainer');
+        const particlesCount = 50;
+
+        for (let i = 0; i < particlesCount; i++) {
+            createParticle();
+        }
+
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            
+            // Position aléatoire
+            const posX = Math.random() * window.innerWidth;
+            const posY = Math.random() * window.innerHeight;
+            
+            // Taille aléatoire
+            const size = Math.random() * 5 + 3;
+            
+            // Animation personnalisée
+            const duration = Math.random() * 20 + 10;
+            const delay = Math.random() * 5;
+            
+            particle.style.left = `${posX}px`;
+            particle.style.top = `${posY}px`;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.animation = `floatParticle ${duration}s linear ${delay}s infinite`;
+            
+            // Couleur aléatoire
+            const colors = ['#ff3366', '#ffcc00', '#6200ea', '#00e676'];
+            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+            
+            particlesContainer.appendChild(particle);
+        }
+
+        // Configuration des prix
+        const prizes = [
+            {
+                icon: "fas fa-mobile-alt",
+                title: "TU VEUX CHERCHE QUOI ,TU AS PERDU QUELQUE CHOSE ?",
+                description: "Ahnnn oui oui je vois tu veux gagner ta vie avec le loto hein !",
+                type: "win"
+            },
+            {
+                icon: "fas fa-car",
+                title: "Tu n'as pas honte ? tu n'as rien fais mais tu veux gagner .",
+                description: "Mon type go bush ananum , je ne sais pas ce que tu cherches ici didonc. apres tu vas R ",
+                type: "win"
+            },
+            {
+                icon: "fas fa-money-bill-wave",
+                title: "Quand on voit un paresseux comme le prof de POO1 on sait !",
+                description: "la vie c'est shema mon type , si  !",
+                type: "win"
+            },
+            {
+                icon: "fas fa-sad-tear",
+                title: "Tu cherche l'argent du mariage comme Haniel et le delegu.....oups",
+                description: "derriere un grand homme (grand de taille ) se cache un grand delegue(grand de ...) oups.",
+                type: "lose"
+            }
+        ];
+
+        // Fonction pour la sélection d'un cadeau
+        function selectGift(index) {
+            // Flip animation for the selected gift
+            const selectedGift = document.getElementById(`gift${index}`);
+            selectedGift.classList.add('flipped');
+            
+            // Delay the modal presentation for better UX
+            setTimeout(() => {
+                showPrize(index);
+            }, 800);
+        }
+
+        // Fonction pour afficher le prix dans le modal
+        function showPrize(index) {
+            const prizeData = prizes[index];
+            const modal = document.getElementById('prizeModal');
+            const modalContent = document.getElementById('modalContent');
+            const prizeIcon = document.getElementById('prizeIcon');
+            const prizeTitle = document.getElementById('prizeTitle');
+            const prizeDesc = document.getElementById('prizeDesc');
+            
+            // Reset any previous classes
+            modalContent.classList.remove('win', 'lose');
+            
+            // Set the prize data
+            prizeIcon.className = `prize-icon ${prizeData.icon}`;
+            prizeTitle.textContent = prizeData.title;
+            prizeDesc.textContent = prizeData.description;
+            
+            // Add the appropriate class based on win/lose
+            modalContent.classList.add(prizeData.type);
+            
+            // Show the modal
+            modal.classList.add('modal-active');
+            
+            // Create confetti effect for winners
+            if (prizeData.type === 'win') {
+                createConfetti();
+            }
+        }
+
+        // Fonction pour créer l'effet de confetti
+        function createConfetti() {
+            const modalContent = document.getElementById('modalContent');
+            const confettiCount = 100;
+            
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                
+                // Position aléatoire au-dessus du modal
+                const posX = Math.random() * modalContent.offsetWidth;
+                const posY = -20;
+                
+                // Taille et rotation aléatoires
+                const size = Math.random() * 8 + 4;
+                const rotation = Math.random() * 360;
+                
+                // Vitesse aléatoire
+                const speedY = Math.random() * 3 + 2;
+                const speedX = Math.random() * 6 - 3;
+                
+                // Style
+                confetti.style.left = `${posX}px`;
+                confetti.style.top = `${posY}px`;
+                confetti.style.width = `${size}px`;
+                confetti.style.height = `${size}px`;
+                confetti.style.transform = `rotate(${rotation}deg)`;
+                
+                // Couleur aléatoire
+                const colors = ['#ff3366', '#ffcc00', '#6200ea', '#00e676', '#03a9f4', '#ff5722'];
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Add to DOM
+                modalContent.appendChild(confetti);
+                
+                // Animate falling
+                let positionY = posY;
+                let positionX = posX;
+                let rotationAngle = rotation;
+                
+                const fallInterval = setInterval(() => {
+                    positionY += speedY;
+                    positionX += speedX;
+                    rotationAngle += 2;
+                    
+                    confetti.style.top = `${positionY}px`;
+                    confetti.style.left = `${positionX}px`;
+                    confetti.style.transform = `rotate(${rotationAngle}deg)`;
+                    
+                    // Remove when out of view
+                    if (positionY > modalContent.offsetHeight + 50) {
+                        clearInterval(fallInterval);
+                        confetti.remove();
+                    }
+                }, 20);
+            }
+        }
+
+        // Fonction pour fermer le modal
+        function closeModal() {
+            const modal = document.getElementById('prizeModal');
+            modal.classList.remove('modal-active');
+            
+            // Reset all gifts
+            setTimeout(() => {
+                for (let i = 0; i < 4; i++) {
+                    const gift = document.getElementById(`gift${i}`);
+                    gift.classList.remove('flipped');
+                }
+            }, 300);
+        }
+    </script>
 </body>
 </html>
