@@ -30,11 +30,12 @@
         <span></span>
         <label>Title</label>
       </div>
-      <div class="txt_field">
-        <input type="text" required name="category">
-        <span></span>
-        <label>Category</label>
-      </div>
+      <select name="category">
+        {% for category in categories %}
+            <option value="{{ category.id }}">{{ category.name }}</option>
+        {% endfor %}
+    </select>
+    
 
       <div class="txt_field" style="height: auto;">
         <label for="description" style="position: static; font-size: 14px;">Description</label>
