@@ -12,9 +12,12 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 from dotenv import load_dotenv
+import logging
 import os
 
-load_dotenv(dotenv_path=".config.env")  # 🔥 Charge les variables depuis "config.env"
+
+dotenv_path = os.path.join(os.path.dirname(__file__), ".config.env")
+load_dotenv(dotenv_path=dotenv_path) # 🔥 Charge les variables depuis "config.env"
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -130,7 +133,7 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'), )
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-ALLOWED_HOSTS = ["BalaAndegue10.pythonanywhere.com"] 
+ALLOWED_HOSTS = ["BalaAndegue10.pythonanywhere.com", "127.0.0.1", "localhost"] 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -144,6 +147,27 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 AUTH_USER_MODEL = "Core.User"
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "file": {
+            "level": "ERROR",
+            "class": "logging.FileHandler",
+            "filename": "django_errors.log",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["file"],
+            "level": "ERROR",
+            "propagate": True,
+        },
+    },
+}
+
 
 
 
