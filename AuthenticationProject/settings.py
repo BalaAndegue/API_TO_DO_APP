@@ -14,7 +14,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 
-load_dotenv(dotenv_path=".config.env")  # 🔥 Charge les variables depuis "config.env"
+
+dotenv_path = os.path.join(os.path.dirname(__file__), ".config.env")
+load_dotenv(dotenv_path=dotenv_path) # 🔥 Charge les variables depuis "config.env"
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -26,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-djv&69rh8kc50$*5@(w=uuq^sc+!@ru-br!aza6lr%m)84z3fu'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = []
 
@@ -130,7 +132,7 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'), )
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-ALLOWED_HOSTS = ["BalaAndegue10.pythonanywhere.com"] 
+ALLOWED_HOSTS = ["BalaAndegue10.pythonanywhere.com", "127.0.0.1", "localhost"] 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
