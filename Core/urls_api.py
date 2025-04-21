@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
+from Core.ViewSet.ContextViewSet import ContextViewSet
 from Core.ViewSet.CategoryViewSet import CategoryViewSet
 from Core.ViewSet.TaskViewSet import TaskViewSet
 from Core.ViewSet.UserViewSet import UserViewSet, RegisterAPIView, LoginAPIView, LogoutAPIView
@@ -11,6 +12,7 @@ router.register(r'users', UserViewSet, basename='user')
 router.register(r'categories', CategoryViewSet, basename='category')
 router.register(r'tasks', TaskViewSet, basename='task')
 router.register(r'invitations', InvitedUserOnTaskViewSet, basename='invitation')
+router.register(r'context',ContextViewSet,basename='context')
 
 urlpatterns = [
     path('', include(router.urls)),

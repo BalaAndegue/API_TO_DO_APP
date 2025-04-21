@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-djv&69rh8kc50$*5@(w=uuq^sc+!@ru-br!aza6lr%m)84z3fu
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["192.168.1.109","127.0.0.1"]
 
 
 # Application definition
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',  # Ajout de AuthToke
     'Core',
+     'corsheaders',
 ]
 
 REST_FRAMEWORK = {
@@ -63,6 +64,15 @@ SWAGGER_SETTINGS = {
     'USE_SESSION_AUTH': False,
 }
 
+# Autoriser l'origine Next.js (ex. http://localhost:3000)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
+
+# Facultatif mais pratique en dev :
+CORS_ALLOW_ALL_HEADERS = True
+CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+CORS_ALLOW_CREDENTIALS = True
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -72,6 +82,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+      'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'AuthenticationProject.urls'
@@ -164,3 +175,4 @@ EMAIL_HOST_PASSWORD="ajmx pjka zoyb jddr"
 
 # MODEL USER
 AUTH_USER_MODEL = 'Core.User'  # Utilisation du modèle d'utilisateur personnalisé
+

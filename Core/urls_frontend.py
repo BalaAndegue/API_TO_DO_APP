@@ -15,7 +15,14 @@ urlpatterns = [
     path('password-reset-sent/<str:reset_id>/', views.PasswordResetSent, name='password-reset-sent'),
     path('reset-password/<str:reset_id>/', views.ResetPassword, name='reset-password'),
 
+
+
     # Task Frontend
     path('tasks-list/', views.task_list, name='tasks-list'),
     path('tasks-create/', views.create_task, name='tasks-create'),
+
+
+    # Category Frontend
+    path('categories-list/', views.category_list, name='categories-list'),
+    path('categories-create/', views.create_task, name='tasks-create'),
 ]

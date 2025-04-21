@@ -1,45 +1,93 @@
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
+from rest_framework import viewsets, status
+from rest_framework.response import Response
 
 from Core.models import Category
 from Core.serializers import CategorySerializer
 
-
 class CategoryViewSet(viewsets.ModelViewSet):
     """
-    ViewSet pour gérer les catégories des tâches (CRUD sécurisé pour l'utilisateur connecté).
+    ViewSet pour gérer les catégories des tâches :
+    - CRUD complet avec réponse personnalisée pour chaque action.
     """
     serializer_class = CategorySerializer
-    permission_classes = [IsAuthenticated]
+    queryset = Category.objects.all()
 
-    def get_queryset(self):
+    def list(self, request, *args, **kwargs):
         """
-        Retourne uniquement les catégories appartenant à l'utilisateur connecté.
+        Liste toutes les catégories avec une réponse formatée.
         """
-        user = self.request.user
-        if user.is_anonymous:
-            return Category.objects.none()
-        return Category.objects.filter(user=user)
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            'success': True,
+            'message': 'Liste des catégories récupérée avec succès',
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Récupère une seule catégorie par son ID.
+        """
+        category = self.get_object()
+        serializer = self.get_serializer(category)
+        return Response({
+            'success': True,
+            'message': 'Catégorie récupérée avec succès',
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def create(self, request, *args, **kwargs):
+        """
+        Crée une nouvelle catégorie.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response({
+            'success': True,
+            'message': 'Catégorie créée avec succès',
+            'data': serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Met à jour une catégorie existante.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response({
+            'success': True,
+            'message': 'Catégorie mise à jour avec succès',
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Supprime une catégorie.
+        """
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({
+            'success': True,
+            'message': 'Catégorie supprimée avec succès'
+        }, status=status.HTTP_204_NO_CONTENT)
 
     def perform_create(self, serializer):
         """
-        Lors de la création, associe la catégorie à l'utilisateur connecté.
+        Enregistre la nouvelle catégorie dans la base de données.
         """
-        serializer.save(user=self.request.user)
+        serializer.save()
 
     def perform_update(self, serializer):
         """
-        Lors de la mise à jour, vérifie que l'utilisateur est bien le créateur.
+        Applique les modifications à une catégorie existante.
         """
-        if serializer.instance.user != self.request.user:
-            raise PermissionDenied("Vous ne pouvez modifier que vos propres catégories.")
         serializer.save()
 
     def perform_destroy(self, instance):
         """
-        Lors de la suppression, vérifie que l'utilisateur est bien le créateur.
+        Supprime la catégorie de la base de données.
         """
-        if instance.user != self.request.user:
-            raise PermissionDenied("Vous ne pouvez supprimer que vos propres catégories.")
         instance.delete()

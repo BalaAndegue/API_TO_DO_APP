@@ -35,15 +35,26 @@ class UserSerializer(serializers.ModelSerializer):
 
 # Serializer pour la connexion (login)
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
     # Méthode de validation pour vérifier que les identifiants sont corrects
     def validate(self, data):
-        user = authenticate(**data)  # Authentification avec Django
-        if user and user.is_active:
-            return user
-        raise serializers.ValidationError("Identifiants invalides")
+        email = data.get("email")
+        password = data.get("password")
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Email ou mot de passe invalide")
+
+        if not user.check_password(password):
+            raise serializers.ValidationError("Email ou mot de passe invalide")
+
+        if not user.is_active:
+            raise serializers.ValidationError("Informations invalide.")
+
+        return user
 
 
 # Serializer pour les tâches

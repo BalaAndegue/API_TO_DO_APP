@@ -36,16 +36,12 @@ def RegisterView(request):
         }
 
         response = requests.post(API_BASE_URL + 'register/', data=data, files=files)
-
         if response.status_code == 201:
             messages.success(request, "Account created. Login now")
-            return redirect('login')
-        else:
-            errors = response.json()
-            for field, error_list in errors.items():
-                for error in error_list:
-                    messages.error(request, f"{field}: {error}")
+            print(f" STATUT : {response.status_code}, Data: {response.json()}")
 
+            return redirect('login')
+        print(f" STATUT : {response.status_code}, Data: {response.json()}")
     return render(request, 'register.html')
 
 def LoginView(request):
@@ -66,12 +62,18 @@ def LoginView(request):
             token = response.json().get('token')
             user = User.objects.filter(username=username).first()
 
-            print(token,user)
+            print(f"""
+                      STATUT: {response.json().get('success')}
+                    message  : {response.json().get("message")}
+                      Data  : {response.json().get("data")}""")
+
             if user:
                 login(request, user)
                 Token.objects.filter(user=user).delete()
                 Token.objects.create(user=user, key=token)
                 return redirect('home')
+
+        print(f" STATUT : {response.status_code}, Data: {response.json()}")
 
         messages.error(request, "Invalid login credentials")
         return redirect('login')
@@ -212,3 +214,12 @@ def delete_task(request, task_id):
         messages.error(request, 'Erreur de suppression')
 
     return redirect('tasks-list')
+
+
+@login_required
+def category_list(request):
+    token, _ = Token.objects.get_or_create(user=request.user)
+ 
+    response = requests.get(API_BASE_URL + 'categories/')
+    categories = response.json() if response.status_code == 200 else []
+    return render(request, 'categories/category_list.html', {'categories': categories})

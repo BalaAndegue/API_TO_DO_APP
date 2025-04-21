@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="utf-8">
+  <title>My categories</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+
+<body>
+  <div class="center">
+    <h1>My categories</h1>
+
+    {% if messages %}
+      {% for message in messages %}
+        {% if message.tags == 'error' %}
+          <center><h4 style="color: firebrick;">{{ message }}</h4></center>
+        {% else %}
+          <center><h4 style="color: dodgerblue;">{{ message }}</h4></center>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% if categories %}
+      <ul style="text-align: left; padding-left: 0;">
+        {% for category in categories %}
+          <li style="margin-bottom: 10px; list-style: none; background: #f4f4f4; padding: 10px; border-radius: 8px;">
+            <strong>{{ category.name }}</strong><br>
+            {{ category.description }}<br>
+         
+            <small>Priority: {{ category.icon }}</small><br>
+           
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="text-align: center;">No categories found.</p>
+    {% endif %}
+
+
+    <div class="signup_link" style="margin-top: 10px;">
+      <a href="{% url 'logout' %}">Logout</a>
+    </div>
+
+  </div>
+</body>
+
+</html>
