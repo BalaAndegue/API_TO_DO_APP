@@ -22,7 +22,7 @@ class RegisterAPIView(APIView):
     @swagger_auto_schema(
         request_body=UserSerializer,
         responses={
-            201: openapi.Response(description="Utilisateur créé avec succès"),
+            200: openapi.Response(description="Utilisateur créé avec succès"),
             400: openapi.Response(description="Erreur de validation"),
         }
     )
@@ -38,7 +38,7 @@ class RegisterAPIView(APIView):
                     'token': token.key,
                     'user': UserSerializer(user).data
                 }
-            }, status=status.HTTP_201_CREATED)
+            }, status=status.HTTP_200_CREATED)
 
         return Response({
             'success': False,
@@ -113,6 +113,7 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         Liste tous les utilisateurs avec réponse personnalisée.
         """
+        print(request)
         users = self.get_queryset()
         serializer = self.get_serializer(users, many=True)
         return Response({

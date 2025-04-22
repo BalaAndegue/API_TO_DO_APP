@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render, redirect
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import login, logout
@@ -35,58 +36,102 @@ def RegisterView(request):
             'password': password
         }
 
-        response = requests.post(API_BASE_URL + 'register/', data=data, files=files)
-        if response.status_code == 201:
-            messages.success(request, "Account created. Login now")
-            print(f" STATUT : {response.status_code}, Data: {response.json()}")
+        try:
+            response = requests.post(API_BASE_URL + 'register/', data=data, files=files)
 
-            return redirect('login')
-        print(f" STATUT : {response.status_code}, Data: {response.json()}")
+            # Essaye de décoder la réponse JSON proprement
+            try:
+                response_data = response.json()
+            except json.JSONDecodeError:
+                messages.error(request, "Erreur : réponse invalide de l’API.")
+                return redirect('register')
+
+            if response.status_code == 200:
+                messages.success(request, "Compte créé avec succès. Connectez-vous maintenant.")
+                print(f"STATUT : {response.status_code}, Data: {response_data}")
+                return redirect('login')
+            else:
+                message = response_data.get('message', "Erreur lors de la création du compte.")
+                errors = response_data.get('error')
+                if errors:
+                    for field, error_list in errors.items():
+                        for err in error_list:
+                            messages.error(request, f"{field}: {err}")
+                else:
+                    messages.error(request, message)
+
+        except requests.exceptions.RequestException as e:
+            messages.error(request, f"Erreur réseau : {e}")
+
     return render(request, 'register.html')
 
 def LoginView(request):
     if request.method == "POST":
-        # Recuperation des données
-        username = request.POST.get("username")
+        email = request.POST.get("email")
         password = request.POST.get("password")
 
-        # formatage en JSON
         data = {
-            "username": username,
+            "email": email,
             "password": password
         }
 
-        response = requests.post(API_BASE_URL + 'login/', data=data)
+        try:
+            response = requests.post(
+                API_BASE_URL + 'login/',
+                json=data,
+                headers={"Content-Type": "application/json"}
+            )
 
-        if response.status_code == 200 and response.json().get('token'):
-            token = response.json().get('token')
-            user = User.objects.filter(username=username).first()
+            print(f"STATUS: {response.status_code}")
+            print(f"RAW RESPONSE: {response.text}")
 
-            print(f"""
-                      STATUT: {response.json().get('success')}
-                    message  : {response.json().get("message")}
-                      Data  : {response.json().get("data")}""")
+            if response.status_code == 200:
+                response_data = response.json()
+                token = response_data.get('access') or response_data.get('data', {}).get('token')
 
-            if user:
-                login(request, user)
-                Token.objects.filter(user=user).delete()
-                Token.objects.create(user=user, key=token)
-                return redirect('home')
+                user = User.objects.filter(email=email).first()
+                if user:
+                    login(request, user)
 
-        print(f" STATUT : {response.status_code}, Data: {response.json()}")
+                    # Supprime et recrée un token s'il existe déjà
+                    Token.objects.filter(user=user).delete()
+                    Token.objects.create(user=user, key=token)
 
-        messages.error(request, "Invalid login credentials")
+                    return redirect('home')
+                else:
+                    messages.error(request, "Utilisateur introuvable.")
+            else:
+                messages.error(request, "Email ou mot de passe incorrect.")
+
+        except requests.exceptions.RequestException as e:
+            print("Erreur lors de la requête API :", str(e))
+            messages.error(request, "Erreur de connexion à l'API.")
+        except json.JSONDecodeError:
+            print("Réponse non JSON :", response.text)
+            messages.error(request, "Erreur inattendue du serveur.")
+
         return redirect('login')
 
     return render(request, 'login.html')
 
 def LogoutView(request):
-    #Recuperation du token de l'utilisateur , et par la suite suppression
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    # Récupération du token
     token = Token.objects.filter(user=request.user).first()
     if token:
         headers = {'Authorization': f'Token {token.key}'}
-        requests.post(API_BASE_URL + 'logout/', headers=headers)
+        try:
+            response = requests.post(API_BASE_URL + 'logout/', headers=headers)
+            if response.status_code == 200:
+                messages.success(request, "Déconnexion réussie.")
+            else:
+                messages.warning(request, "Erreur lors de la déconnexion de l'API.")
+        except requests.exceptions.RequestException as e:
+            messages.error(request, f"Erreur réseau : {e}")
         token.delete()
+
     logout(request)
     return redirect('login')
 
@@ -170,8 +215,9 @@ def task_list(request):
     headers = {'Authorization': f'Token {token}'}
 
     response = requests.get(API_BASE_URL + 'tasks/', headers=headers)
-    tasks = response.json() if response.status_code == 200 else []
+    tasks = response.json()['data'] if response.status_code == 200 else []
     return render(request, 'tasks/task_list.html', {'tasks': tasks})
+
 @login_required
 def create_task(request):
     token = Token.objects.get(user=request.user).key
@@ -180,6 +226,7 @@ def create_task(request):
     if request.method == 'POST':
         data = {
             'title': request.POST.get('title'),
+            'statut':False,
             'category': request.POST.get('category'),  # Doit être l'ID maintenant
             'description': request.POST.get('description'),
             'start_date': request.POST.get('start_date'),
@@ -197,7 +244,7 @@ def create_task(request):
 
     # On récupère les catégories de l’API
     categories_response = requests.get(API_BASE_URL + 'categories/', headers=headers)
-    categories = categories_response.json() if categories_response.status_code == 200 else []
+    categories = categories_response.json()['data'] if categories_response.status_code == 200 else []
 
     return render(request, 'tasks/create_task.html', {'categories': categories})
 
@@ -221,5 +268,5 @@ def category_list(request):
     token, _ = Token.objects.get_or_create(user=request.user)
  
     response = requests.get(API_BASE_URL + 'categories/')
-    categories = response.json() if response.status_code == 200 else []
+    categories = response.json() ['data'] if response.status_code == 200 else []
     return render(request, 'categories/category_list.html', {'categories': categories})

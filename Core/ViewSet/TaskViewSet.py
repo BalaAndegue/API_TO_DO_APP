@@ -6,30 +6,36 @@ from rest_framework.exceptions import PermissionDenied
 from Core.models import Task
 from Core.serializers import TaskSerializer
 
+
 class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        #recuoeration de l'user
         user = self.request.user
-        if user.is_authenticated:
-            return Task.objects.filter(user=user)
-        return Task.objects.none()  # Aucun accès pour les non-authentifiés
+        queryset = Task.objects.filter(user=user)
 
+        # Filtrage
+        priority = self.request.query_params.get('priority')
+        category = self.request.query_params.get('category')
+        if priority:
+            queryset = queryset.filter(priority=priority)
+        if category:
+            queryset = queryset.filter(category=category)
+
+        return queryset
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(self.get_queryset(), many=True)
         return Response({
             'success': True,
             'message': 'Liste des tâches récupérée avec succès',
             'data': serializer.data
         }, status=status.HTTP_200_OK)
 
-# Recuperer une tache precise
     def retrieve(self, request, *args, **kwargs):
-        task = self.get_object()
-        serializer = self.get_serializer(task)
+        serializer = self.get_serializer(self.get_object())
         return Response({
             'success': True,
             'message': 'Tâche récupérée avec succès',
@@ -50,6 +56,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         task = self.get_object()
         if task.user != request.user:
             raise PermissionDenied("Vous ne pouvez modifier que vos propres tâches.")
+
         serializer = self.get_serializer(task, data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
@@ -63,6 +70,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         task = self.get_object()
         if task.user != request.user:
             raise PermissionDenied("Vous ne pouvez supprimer que vos propres tâches.")
+
         self.perform_destroy(task)
         return Response({
             'success': True,
