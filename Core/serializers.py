@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import InvitedUserOnTask, Task, Category, PasswordReset, User
-from django.contrib.auth import authenticate
 
 
 # Serializer pour l'enregistrement et la représentation des utilisateurs
@@ -67,7 +66,14 @@ class CategorySerializer(serializers.ModelSerializer):
 
 # Serializer pour les tâches
 class TaskSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(read_only=True)
+  # POUR LE post
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), write_only=True
+    )
+
+    #POUR LE get
+    category_details = CategorySerializer(source='category', read_only=True)
+
 
     class Meta:
         model = Task

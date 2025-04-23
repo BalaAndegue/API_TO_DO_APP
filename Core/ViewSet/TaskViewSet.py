@@ -13,6 +13,9 @@ class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Task.objects.none() 
+
         user = self.request.user
         queryset = Task.objects.filter(user=user)
 
@@ -51,6 +54,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         try:
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
+            serializer.save(user=request.user)
             self.perform_create(serializer)
             return Response({
                 'success': True,
@@ -74,7 +78,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             self.perform_update(serializer)
             return Response({
                 'success': True,
-                'message': 'Tâche mise à jour avec succès',
+                'message': 'Tâche mise à jour avec succès, la liste des taches est : ',
                 'data': serializer.data
             }, status=status.HTTP_200_OK)
         except ValidationError as e:
@@ -85,43 +89,44 @@ class TaskViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 
-def destroy(self, request, *args, **kwargs):
-    try:
-        # Récupérer l'objet sans filtrer par user
-        task = Task.objects.filter(pk=kwargs.get("pk")).first()
+    def destroy(self, request, *args, **kwargs):
+        if getattr(self, 'swagger_fake_view', False):
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
-        if not task:
-            raise NotFound("Tâche introuvable.")
+        try:
+            task = Task.objects.filter(pk=kwargs.get("pk")).first()
 
-        if task.user != request.user:
-            raise PermissionDenied("Vous ne pouvez supprimer que vos propres tâches.")
+            if not task:
+                raise NotFound("Tâche introuvable.")
 
-        self.perform_destroy(task)
+            if task.user != request.user:
+                raise PermissionDenied("Vous ne pouvez supprimer que vos propres tâches.")
 
-        # Retourner les tâches restantes
-        serializer = self.get_serializer(self.get_queryset(), many=True)
+            self.perform_destroy(task)
 
-        return Response({
-            'success': True,
-            'message': 'Tâche supprimée avec succès',
-            'data': serializer.data
-        }, status=status.HTTP_200_OK)
+            serializer = self.get_serializer(self.get_queryset(), many=True)
 
-    except PermissionDenied as e:
-        return Response({
-            'success': False,
-            'message': str(e)
-        }, status=status.HTTP_403_FORBIDDEN)
+            return Response({
+                'success': True,
+                'message': 'Tâche supprimée avec succès',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
 
-    except NotFound as e:
-        return Response({
-            'success': False,
-            'message': str(e)
-        }, status=status.HTTP_404_NOT_FOUND)
+        except PermissionDenied as e:
+            return Response({
+                'success': False,
+                'message': str(e)
+            }, status=status.HTTP_403_FORBIDDEN)
 
-    except Exception as e:
-        return Response({
-            'success': False,
-            'message': 'Une erreur est survenue',
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except NotFound as e:
+            return Response({
+                'success': False,
+                'message': str(e)
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': 'Une erreur est survenue',
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

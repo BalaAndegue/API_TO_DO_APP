@@ -2,12 +2,13 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from Core.models import Category
 from Core.serializers import CategorySerializer
+from rest_framework.permissions import AllowAny
 
 class ContextViewSet(viewsets.ViewSet):
     """
     ViewSet pour récupérer le contexte (ex: catégories).
     """
-
+    permission_classes = [AllowAny]
     def list(self, request, *args, **kwargs):
         """
         Liste toutes les catégories avec une réponse formatée.
