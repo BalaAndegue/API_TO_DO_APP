@@ -4,7 +4,9 @@ from rest_framework.exceptions import PermissionDenied
 from Core.models import InvitedUserOnTask,User
 from Core.serializers import InvitedUserOnTaskSerializer
 from django.db.models import Q
-
+from django.core.mail import EmailMessage, send_mail
+from django.conf import settings
+from django.urls import reverse
 
 class InvitedUserOnTaskViewSet(viewsets.ModelViewSet):
     """
@@ -16,23 +18,48 @@ class InvitedUserOnTaskViewSet(viewsets.ModelViewSet):
     serializer_class = InvitedUserOnTaskSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
+    def list(self, request, *args , **kwargs):
         """
         Affiche les invitations envoyées ou reçues par l'utilisateur.
         """
         # recuperation de l'iutilisateur
         user = self.request.user
+        queryset = InvitedUserOnTask.objects.all() 
+        serializer_class = InvitedUserOnTaskSerializer
         if not user or user.is_anonymous:
             return InvitedUserOnTask.objects.none()
-        return InvitedUserOnTask.objects.filter(inviter=user)
+        return Response({"success ": True,"message": "objet retournee","data ":InvitedUserOnTask.objects.filter(inviter=user)})
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
         """
         Lors de la création, l'utilisateur est automatiquement mis comme l'inviteur.
         """
-        #recherche l'utilisateur invité
-        invited_user = User.objects.filter(self.invited_user)
-        serializer.save(inviter=self.request.user)
+        
+        email_invited = request.data.get("email_invited_user")
+        invited_user = User.objects.filter(email=email_invited).first()  # ✅ Utiliser `.first()` pour éviter une liste
+
+        if not invited_user:
+            return Response({"success": True, "message": "utilisateur introuvable", "data": serializer.data}, status=status.HTTP_400_BAD_REQUEST)
+
+        #password_reset_url = reverse('reset-password', kwargs={'reset_id': new_password_reset.reset_id})
+
+        #full_password_reset_url = f'{request.scheme}://{request.get_host()}{password_reset_url}'
+        full_password_reset_url = f'vous avez ete invite par {self.request.user}'
+
+        email_body = f'Reset your password using the link below:\n\n\n{full_password_reset_url}'
+        
+        email_message = EmailMessage(
+                'Reset your password', # email subject
+                email_body,
+                settings.EMAIL_HOST_USER, # email sender
+                [email_invited] # email  receiver 
+            )
+        email_message.send()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(inviter=request.user, invited_user=invited_user)  # ✅ Enregistre inviter et invited_user
+
+        return Response({"success": True, "message": "Invitation envoyée avec succès", "data": serializer.data}, status=status.HTTP_201_CREATED)
 
     def perform_update(self, serializer):
         """

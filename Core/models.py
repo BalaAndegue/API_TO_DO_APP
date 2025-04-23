@@ -49,9 +49,11 @@ class Category(models.Model):
 
 
 class InvitedUserOnTask(models.Model):
-    task = models.ForeignKey(Task, on_delete=models.CASCADE)  # 🔗 La tâche concernée
+    id = models.AutoField(primary_key=True)
+    id_task = models.ForeignKey(Task, on_delete=models.CASCADE)  # 🔗 La tâche concernée
     inviter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="task_invitations")  # 🔗 Celui qui invite
     invited_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="task_invited")  # 🔗 Celui qui est invité
+    email_invited_user = models.EmailField(blank=False, default="")
     accepted = models.BooleanField(default=False)  # ✅ Statut d'acceptation
     invited_at = models.DateTimeField(auto_now_add=True)  # 📅 Date d’invitation
 

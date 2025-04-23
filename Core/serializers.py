@@ -94,5 +94,5 @@ class PasswordResetSerializer(serializers.ModelSerializer):
 class InvitedUserOnTaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvitedUserOnTask
-        fields = '__all__'
+        fields = ['id_task', "email_invited_user"]
         read_only_fields = ['inviter', 'invited_at']  # ✅ L’utilisateur qui invite est ajouté automatiquement
