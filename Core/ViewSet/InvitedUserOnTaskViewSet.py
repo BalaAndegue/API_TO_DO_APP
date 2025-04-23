@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from Core.models import InvitedUserOnTask
+from Core.models import InvitedUserOnTask,User
 from Core.serializers import InvitedUserOnTaskSerializer
 from django.db.models import Q
 
@@ -21,16 +21,17 @@ class InvitedUserOnTaskViewSet(viewsets.ModelViewSet):
         Affiche les invitations envoyées ou reçues par l'utilisateur.
         """
         # recuperation de l'iutilisateur
-    
         user = self.request.user
         if not user or user.is_anonymous:
             return InvitedUserOnTask.objects.none()
-        return InvitedUserOnTask.objects.filter(user=user)
+        return InvitedUserOnTask.objects.filter(inviter=user)
 
     def perform_create(self, serializer):
         """
         Lors de la création, l'utilisateur est automatiquement mis comme l'inviteur.
         """
+        #recherche l'utilisateur invité
+        invited_user = User.objects.filter(self.invited_user)
         serializer.save(inviter=self.request.user)
 
     def perform_update(self, serializer):

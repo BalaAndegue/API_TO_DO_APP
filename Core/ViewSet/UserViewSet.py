@@ -5,10 +5,9 @@ from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError, PermissionDenied, NotAuthenticated
-
 from Core.models import User
 from Core.serializers import UserSerializer, LoginSerializer
-
+from rest_framework.permissions import AllowAny
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from drf_spectacular.utils import extend_schema
@@ -18,6 +17,7 @@ class RegisterAPIView(APIView):
     """
     API pour enregistrer un nouvel utilisateur.
     """
+    permission_classes = [AllowAny]
 
     @swagger_auto_schema(
         request_body=UserSerializer,
@@ -52,7 +52,7 @@ class LoginAPIView(APIView):
     """
     API pour se connecter avec email et mot de passe.
     """
-
+    permission_classes = [AllowAny]
     @swagger_auto_schema(
         request_body=LoginSerializer,
         responses={
@@ -117,7 +117,7 @@ class LogoutAPIView(APIView):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
         try:

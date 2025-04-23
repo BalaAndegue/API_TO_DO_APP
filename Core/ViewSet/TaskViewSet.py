@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError, NotFound
-from rest_framework.views import exception_handler
+
 
 from Core.models import Task
 from Core.serializers import TaskSerializer
@@ -100,6 +100,7 @@ def destroy(self, request, *args, **kwargs):
 
         # Retourner les tâches restantes
         serializer = self.get_serializer(self.get_queryset(), many=True)
+
         return Response({
             'success': True,
             'message': 'Tâche supprimée avec succès',
