@@ -57,8 +57,18 @@ class LoginSerializer(serializers.Serializer):
         return user
 
 
+    
+# Serializer pour les catégories
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = '__all__'
+        read_only_fields = ['user', 'created_at', 'updated_at']
+
 # Serializer pour les tâches
 class TaskSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
+
     class Meta:
         model = Task
         fields = '__all__'  # Tous les champs du modèle
@@ -72,13 +82,6 @@ class TaskSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("La date de fin doit être après la date de début.")
         return data
 
-    
-# Serializer pour les catégories
-class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = '__all__'
-        read_only_fields = ['user', 'created_at', 'updated_at']
 
 
 # Serializer pour les objets de réinitialisation de mot de passe

@@ -50,19 +50,22 @@ REST_FRAMEWORK = {
     ],
 }
 
+
 SWAGGER_SETTINGS = {
     'LOGIN_URL': None,
     'LOGOUT_URL': None,
+    'USE_SESSION_AUTH': False,  
     'SECURITY_DEFINITIONS': {
         'Token': {
             'type': 'apiKey',
             'in': 'header',
             'name': 'Authorization',
-            'description': "Token <votre_token_ici>",
+            'description': "Format : Token <votre_token>",
         }
     },
-    'USE_SESSION_AUTH': False,
+    
 }
+
 
 # Autoriser l'origine Next.js (ex. http://localhost:3000)
 CORS_ALLOWED_ORIGINS = [

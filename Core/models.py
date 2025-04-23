@@ -25,7 +25,7 @@ class Task(models.Model):
 
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tasks")
-    category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks")
+    category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True, blank=False, related_name="tasks")
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     status = models.BooleanField(default=False)

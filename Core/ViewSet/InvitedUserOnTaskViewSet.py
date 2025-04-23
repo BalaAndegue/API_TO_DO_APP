@@ -20,6 +20,8 @@ class InvitedUserOnTaskViewSet(viewsets.ModelViewSet):
         """
         Affiche les invitations envoyées ou reçues par l'utilisateur.
         """
+        # recuperation de l'iutilisateur
+    
         user = self.request.user
         if not user or user.is_anonymous:
             return InvitedUserOnTask.objects.none()

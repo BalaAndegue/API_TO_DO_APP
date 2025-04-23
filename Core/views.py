@@ -268,5 +268,5 @@ def category_list(request):
     token, _ = Token.objects.get_or_create(user=request.user)
  
     response = requests.get(API_BASE_URL + 'categories/')
-    categories = response.json() ['data'] if response.status_code == 200 else []
+    categories = response.json()['data'] if response.status_code == 200 else []
     return render(request, 'categories/category_list.html', {'categories': categories})
