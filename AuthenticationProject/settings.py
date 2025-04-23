@@ -45,8 +45,12 @@ INSTALLED_APPS = [
 ]
 
 REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'Core.utils.custom_exception_handler',
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
     ],
 }
 
