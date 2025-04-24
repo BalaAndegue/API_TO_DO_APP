@@ -101,4 +101,4 @@ class InvitedUserOnTaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvitedUserOnTask
         fields = ['id_task', "email_invited_user"]
-        read_only_fields = ['inviter', 'invited_at']  # ✅ L’utilisateur qui invite est ajouté automatiquement
+        read_only_fields = ['inviter', 'invited_at']  # L’utilisateur qui invite est ajouté automatiquement
