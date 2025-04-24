@@ -26,8 +26,7 @@ class InvitedUserOnTaskViewSet(viewsets.ModelViewSet):
         """
         # recuperation de l'iutilisateur
         user = self.request.user
-        queryset = InvitedUserOnTask.objects.all() 
-        serializer_class = InvitedUserOnTaskSerializer
+
         if not user or user.is_anonymous:
             return InvitedUserOnTask.objects.none()
         return Response({"success ": True,"message": "objet retournee","data ":InvitedUserOnTask.objects.filter(inviter=user)})
@@ -63,6 +62,7 @@ class InvitedUserOnTaskViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """
         Lors de la création, l'utilisateur est automatiquement mis comme l'inviteur.
+        Si l'utilisateur invité existe, l'invitation est automatiquement acceptée.
         """
 
         try:
@@ -83,8 +83,24 @@ class InvitedUserOnTaskViewSet(viewsets.ModelViewSet):
                     "data": None
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Message d'invitation
-            full_message = f"Vous avez été invité à collaborer par {request.user.email}."
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            # On enregistre l'invitation AVANT pour avoir accès à la tâche liée et on met dans un premirer temps l'acc
+            # eptation à True
+
+            instance = serializer.save(
+                inviter=request.user,
+                  invited_user=invited_user,
+                  accepted=True)
+
+            task_title = instance.id_task.title  
+            full_message = (
+                f"👋 Bonjour  **{request.user.username}**,\n\n"
+                f"Vous avez été invité par **{request.user.email}** à collaborer sur la tâche : \"{task_title}\".\n\n"
+                f"📎 Accédez à la plateforme ici : https://aaacode.pythonanywhere.com/\n\n"
+                f"À très vite ! 🚀"
+            )
 
             email_message = EmailMessage(
                 subject='Invitation à collaborer sur une tâche',
@@ -94,10 +110,7 @@ class InvitedUserOnTaskViewSet(viewsets.ModelViewSet):
             )
             email_message.send(fail_silently=False)
 
-            # Création de l'invitation
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save(inviter=request.user, invited_user=invited_user)
+           
 
             return Response({
                 "success": True,

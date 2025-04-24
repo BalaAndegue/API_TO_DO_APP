@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError, NotFound
 
 
-from Core.models import Task
+from Core.models import InvitedUserOnTask, Task
 from Core.serializers import TaskSerializer
 
 
@@ -14,20 +14,32 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
-            return Task.objects.none() 
+            return Task.objects.none()
 
         user = self.request.user
-        queryset = Task.objects.filter(user=user)
 
+        # Tâches créées par l'utilisateur
+        owned_tasks = Task.objects.filter(user=user).distinct()
+
+        # Tâches auxquelles l'utilisateur a été invité et a accepté
+        invited_tasks = Task.objects.filter(
+            inviteduserontask__invited_user=user,
+            inviteduserontask__accepted=True
+        ).distinct()
+    
+
+        queryset = (owned_tasks | invited_tasks).distinct()
+
+        # Filtres éventuels
         priority = self.request.query_params.get('priority')
         category = self.request.query_params.get('category')
+
         if priority:
             queryset = queryset.filter(priority=priority)
         if category:
             queryset = queryset.filter(category=category)
 
         return queryset
-
     def list(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.get_queryset(), many=True)
         return Response({
@@ -70,17 +82,24 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         task = self.get_object()
+
         if task.user != request.user:
             raise PermissionDenied("Vous ne pouvez modifier que vos propres tâches.")
+
+    
+        partial = kwargs.pop('partial', False)
+
         try:
-            serializer = self.get_serializer(task, data=request.data)
+            serializer = self.get_serializer(task, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
+
             return Response({
                 'success': True,
-                'message': 'Tâche mise à jour avec succès, la liste des taches est : ',
+                'message': f"Tâche mise à jour avec succès via {'PATCH' if partial else 'PUT'}",
                 'data': serializer.data
             }, status=status.HTTP_200_OK)
+
         except ValidationError as e:
             return Response({
                 'success': False,
