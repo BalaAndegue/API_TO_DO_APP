@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import InvitedUserOnTask, Task, Category, PasswordReset, User
+from .models import InvitedUserOnTask, Task, Category, PasswordReset, User, Board, List, Card, Label, BoardMember, CardMember, CardLabel, Checklist, ChecklistItem, Comment, Attachment, Activity
 
 
 # Serializer pour l'enregistrement et la représentation des utilisateurs
@@ -56,39 +56,7 @@ class LoginSerializer(serializers.Serializer):
         return user
 
 
-    
-# Serializer pour les catégories
-class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = '__all__'
-        read_only_fields = ['user', 'created_at', 'updated_at']
-
-# Serializer pour les tâches
-class TaskSerializer(serializers.ModelSerializer):
-  # POUR LE post
-    category = serializers.PrimaryKeyRelatedField(
-        queryset=Category.objects.all(), write_only=True
-    )
-
-    #POUR LE get
-    category_details = CategorySerializer(source='category', read_only=True)
-
-
-    class Meta:
-        model = Task
-        fields = '__all__'  # Tous les champs du modèle
-        read_only_fields = ['user', 'created_at', 'updated_at']  # Champs gérés automatiquement
-
-    def validate(self, data):
-        start_date = data.get('start_date')
-        end_date = data.get('end_date')
-
-        if start_date and end_date and end_date < start_date:
-            raise serializers.ValidationError("La date de fin doit être après la date de début.")
-        return data
-
-
+ 
 
 # Serializer pour les objets de réinitialisation de mot de passe
 class PasswordResetSerializer(serializers.ModelSerializer):
@@ -102,3 +70,74 @@ class InvitedUserOnTaskSerializer(serializers.ModelSerializer):
         model = InvitedUserOnTask
         fields = ['id_task', "email_invited_user"]
         read_only_fields = ['inviter', 'invited_at']  # L’utilisateur qui invite est ajouté automatiquement
+
+class BoardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Board
+        fields = '__all__'
+        read_only_fields = ['creator', 'created_at', 'updated_at']
+
+class ListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = List
+        fields = '__all__'
+        read_only_fields = ['created_at']
+
+class CardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Card
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
+
+class LabelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Label
+        fields = '__all__'
+
+class BoardMemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BoardMember
+        fields = '__all__'
+        read_only_fields = []
+
+class CardMemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CardMember
+        fields = '__all__'
+        read_only_fields = []
+
+class CardLabelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CardLabel
+        fields = '__all__'
+        read_only_fields = []
+
+class ChecklistSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Checklist
+        fields = '__all__'
+        read_only_fields = []
+
+class ChecklistItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChecklistItem
+        fields = '__all__'
+        read_only_fields = []
+
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = '__all__'
+        read_only_fields = ['created_at']
+
+class AttachmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Attachment
+        fields = '__all__'
+        read_only_fields = []
+
+class ActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Activity
+        fields = '__all__'
+        read_only_fields = ['created_at']
