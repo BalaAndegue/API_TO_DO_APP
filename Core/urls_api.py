@@ -14,6 +14,7 @@ from Core.ViewSet.ChecklistItemViewSet import ChecklistItemViewSet
 from Core.ViewSet.CommentViewSet import CommentViewSet
 from Core.ViewSet.AttachmentViewSet import AttachmentViewSet
 from Core.ViewSet.ActivityViewSet import ActivityViewSet
+from Core.ViewSet.BoardInvitationViewSet import BoardInvitationViewSet # Added import
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -30,6 +31,7 @@ router.register(r'checklist-items', ChecklistItemViewSet, basename='checklistite
 router.register(r'comments', CommentViewSet, basename='comment')
 router.register(r'attachments', AttachmentViewSet, basename='attachment')
 router.register(r'activities', ActivityViewSet, basename='activity')
+router.register(r'invitations', BoardInvitationViewSet, basename='invitation') # Added router
 
 urlpatterns = [
     path('', include(router.urls)),

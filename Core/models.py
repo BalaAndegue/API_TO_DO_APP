@@ -23,6 +23,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=50, unique=True, db_index=True)
     email = models.EmailField(max_length=100, unique=True, db_index=True)
     password_hash = models.CharField(max_length=255)
+    first_name = models.CharField(max_length=50, blank=True)
+    last_name = models.CharField(max_length=50, blank=True)
+    bio = models.TextField(blank=True, null=True)
+    avatar_url = models.URLField(max_length=500, blank=True, null=True)  # URL to avatar image
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -55,13 +59,17 @@ class Board(models.Model):
     class Visibility(models.TextChoices):
         PUBLIC = 'public', 'Public'
         PRIVATE = 'private', 'Private'
+        WORKSPACE = 'workspace', 'Workspace' # Added workspace visibility
 
     board_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    visibility = models.CharField(max_length=7, choices=Visibility.choices, default=Visibility.PRIVATE)
+    visibility = models.CharField(max_length=10, choices=Visibility.choices, default=Visibility.PRIVATE)
+    background_type = models.CharField(max_length=20, default='color') # color or image
+    background_value = models.CharField(max_length=500, default='#0079bf') # hex or url
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='boards_created', db_index=True)
     position = models.IntegerField(default=0, db_index=True)
+    is_closed = models.BooleanField(default=False) # Archived/Closed board
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -75,6 +83,20 @@ class Board(models.Model):
     def __str__(self):
         return self.name
 
+class BoardInvitation(models.Model):
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='invitations')
+    inviter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_invitations')
+    email = models.EmailField() # Invite by email
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    accepted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('board', 'email')
+
+    def __str__(self):
+        return f"Invitation for {self.email} to {self.board.name}"
+
 class List(models.Model):
     list_id = models.AutoField(primary_key=True)
     board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='lists', db_index=True)
@@ -82,9 +104,11 @@ class List(models.Model):
     position = models.IntegerField(db_index=True)
     archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True) # Added updated_at
 
     class Meta:
         db_table = 'lists'
+        ordering = ['position'] # Default ordering
         indexes = [
             models.Index(fields=['board']),
             models.Index(fields=['position']),
@@ -99,7 +123,10 @@ class Card(models.Model):
     board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='cards', db_index=True)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
+    start_date = models.DateTimeField(blank=True, null=True) # Added start date
     due_date = models.DateTimeField(blank=True, null=True)
+    due_date_complete = models.BooleanField(default=False) # Checkbox for due date
+    cover_image_url = models.URLField(max_length=500, blank=True, null=True) # Cover image
     position = models.IntegerField(db_index=True)
     archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
@@ -107,6 +134,7 @@ class Card(models.Model):
 
     class Meta:
         db_table = 'cards'
+        ordering = ['position']
         indexes = [
             models.Index(fields=['list']),
             models.Index(fields=['board']),
@@ -119,7 +147,7 @@ class Card(models.Model):
 class Label(models.Model):
     label_id = models.AutoField(primary_key=True)
     board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='labels', db_index=True)
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, blank=True) # Name can be empty (just color)
     color = models.CharField(max_length=20)
     archived = models.BooleanField(default=False)
 
@@ -130,16 +158,18 @@ class Label(models.Model):
         ]
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.color})"
 
 class BoardMember(models.Model):
     class Role(models.TextChoices):
         ADMIN = 'admin', 'Admin'
         MEMBER = 'member', 'Member'
+        OBSERVER = 'observer', 'Observer' # Added observer role
 
     board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='board_members', db_index=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='board_memberships', db_index=True)
-    role = models.CharField(max_length=6, choices=Role.choices, default=Role.MEMBER)
+    role = models.CharField(max_length=10, choices=Role.choices, default=Role.MEMBER)
+    joined_at = models.DateTimeField(auto_now_add=True) # Track when joined
 
     class Meta:
         db_table = 'board_members'
@@ -155,6 +185,7 @@ class BoardMember(models.Model):
 class CardMember(models.Model):
     card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name='card_members', db_index=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='card_memberships', db_index=True)
+    added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'card_members'
@@ -186,9 +217,12 @@ class Checklist(models.Model):
     checklist_id = models.AutoField(primary_key=True)
     card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name='checklists', db_index=True)
     name = models.CharField(max_length=100)
+    position = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'checklists'
+        ordering = ['position']
         indexes = [
             models.Index(fields=['card']),
         ]
@@ -202,9 +236,11 @@ class ChecklistItem(models.Model):
     name = models.CharField(max_length=200)
     checked = models.BooleanField(default=False)
     position = models.IntegerField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'checklist_items'
+        ordering = ['position']
         indexes = [
             models.Index(fields=['checklist']),
             models.Index(fields=['position']),
@@ -219,9 +255,11 @@ class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments', db_index=True)
     content = models.TextField()
     created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True) # Added updated_at
 
     class Meta:
         db_table = 'comments'
+        ordering = ['-created_at'] # Newest first by default
         indexes = [
             models.Index(fields=['card']),
             models.Index(fields=['user']),
@@ -238,9 +276,11 @@ class Attachment(models.Model):
     mime_type = models.CharField(max_length=100)
     size = models.IntegerField()
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='attachments', db_index=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True) # Added upload timestamp
 
     class Meta:
         db_table = 'attachments'
+        ordering = ['-uploaded_at']
         indexes = [
             models.Index(fields=['card']),
             models.Index(fields=['uploaded_by']),
@@ -255,12 +295,13 @@ class Activity(models.Model):
     card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name='activities', db_index=True, blank=True, null=True)
     list = models.ForeignKey(List, on_delete=models.CASCADE, related_name='activities', db_index=True, blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activities', db_index=True)
-    action_type = models.CharField(max_length=50)
-    content = models.TextField()
+    action_type = models.CharField(max_length=50) # e.g., create_card, move_card, comment
+    content = models.TextField() # Description or JSON data
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = 'activities'
+        ordering = ['-created_at']
         indexes = [
             models.Index(fields=['board']),
             models.Index(fields=['card']),
@@ -280,4 +321,3 @@ def update_position(model, obj_id, new_position):
         obj.position = new_position
         obj.save()
     return obj
-

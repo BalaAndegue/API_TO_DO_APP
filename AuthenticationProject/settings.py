@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',  # Ajout de AuthToke
+    'drf_yasg', # Added drf_yasg for Swagger
     'Core',
      'corsheaders',
 ]
@@ -58,7 +59,7 @@ REST_FRAMEWORK = {
 SWAGGER_SETTINGS = {
     'LOGIN_URL': None,
     'LOGOUT_URL': None,
-    'USE_SESSION_AUTH': False,  
+    'USE_SESSION_AUTH': False,
     'SECURITY_DEFINITIONS': {
         'Token': {
             'type': 'apiKey',
@@ -67,7 +68,7 @@ SWAGGER_SETTINGS = {
             'description': "Format : Token <votre_token>",
         }
     },
-    
+    'DEFAULT_INFO': 'AuthenticationProject.urls.api_info', 
 }
 
 
@@ -182,4 +183,3 @@ EMAIL_HOST_PASSWORD="ajmx pjka zoyb jddr"
 
 # MODEL USER
 AUTH_USER_MODEL = 'Core.User'  # Utilisation du modèle d'utilisateur personnalisé
-
