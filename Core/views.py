@@ -9,6 +9,7 @@ from django.core.mail import EmailMessage
 from django.utils import timezone
 from django.urls import reverse
 from .models import *
+from .models import PasswordReset
 import requests
 
 API_BASE_URL = 'http://localhost:8000/api/'
@@ -39,7 +40,6 @@ def RegisterView(request):
         try:
             response = requests.post(API_BASE_URL + 'register/', data=data, files=files)
 
-            # Essaye de décoder la réponse JSON proprement
             try:
                 response_data = response.json()
             except json.JSONDecodeError:
@@ -93,7 +93,6 @@ def LoginView(request):
                 if user:
                     login(request, user)
 
-                    # Supprime et recrée un token s'il existe déjà
                     Token.objects.filter(user=user).delete()
                     Token.objects.create(user=user, key=token)
 
@@ -118,7 +117,6 @@ def LogoutView(request):
     if not request.user.is_authenticated:
         return redirect('login')
 
-    # Récupération du token
     token = Token.objects.filter(user=request.user).first()
     if token:
         headers = {'Authorization': f'Token {token.key}'}
@@ -210,63 +208,87 @@ def ResetPassword(request, reset_id):
     return render(request, 'reset_password.html')
 
 @login_required
-def task_list(request):
+def board_list(request):
     token, _ = Token.objects.get_or_create(user=request.user)
     headers = {'Authorization': f'Token {token}'}
-
-    response = requests.get(API_BASE_URL + 'tasks/', headers=headers)
-    tasks = response.json()['data'] if response.status_code == 200 else []
-    return render(request, 'tasks/task_list.html', {'tasks': tasks})
+    response = requests.get(API_BASE_URL + 'boards/', headers=headers)
+    boards = response.json().get('results', []) if response.status_code == 200 else []
+    return render(request, 'boards/board_list.html', {'boards': boards})
 
 @login_required
-def create_task(request):
-    token = Token.objects.get(user=request.user).key
+def create_board(request):
+    token, _ = Token.objects.get_or_create(user=request.user)
     headers = {'Authorization': f'Token {token}'}
+    if request.method == 'POST':
+        data = {
+            'name': request.POST.get('name'),
+            'description': request.POST.get('description'),
+            'visibility': request.POST.get('visibility', 'private'),
+        }
+        response = requests.post(API_BASE_URL + 'boards/', headers=headers, data=data)
+        if response.status_code in (200, 201):
+            return redirect('board-list')
+        else:
+            messages.error(request, 'Erreur lors de la création du board')
+    return render(request, 'boards/create_board.html')
 
+@login_required
+def list_list(request, board_id):
+    token, _ = Token.objects.get_or_create(user=request.user)
+    headers = {'Authorization': f'Token {token}'}
+    response = requests.get(f'{API_BASE_URL}lists/?board={board_id}', headers=headers)
+    lists = response.json().get('results', []) if response.status_code == 200 else []
+    return render(request, 'lists/list_list.html', {'lists': lists, 'board_id': board_id})
+
+@login_required
+def create_list(request, board_id):
+    token, _ = Token.objects.get_or_create(user=request.user)
+    headers = {'Authorization': f'Token {token}'}
+    if request.method == 'POST':
+        data = {
+            'name': request.POST.get('name'),
+            'board': board_id,
+            'position': request.POST.get('position', 0),
+        }
+        response = requests.post(API_BASE_URL + 'lists/', headers=headers, data=data)
+        if response.status_code in (200, 201):
+            return redirect('list-list', board_id=board_id)
+        else:
+            messages.error(request, 'Erreur lors de la création de la liste')
+    return render(request, 'lists/create_list.html', {'board_id': board_id})
+
+@login_required
+def card_list(request, list_id):
+    token, _ = Token.objects.get_or_create(user=request.user)
+    headers = {'Authorization': f'Token {token}'}
+    response = requests.get(f'{API_BASE_URL}cards/?list={list_id}', headers=headers)
+    cards = response.json().get('results', []) if response.status_code == 200 else []
+    return render(request, 'cards/card_list.html', {'cards': cards, 'list_id': list_id})
+
+@login_required
+def create_card(request, list_id):
+    token, _ = Token.objects.get_or_create(user=request.user)
+    headers = {'Authorization': f'Token {token}'}
     if request.method == 'POST':
         data = {
             'title': request.POST.get('title'),
-            'statut':False,
-            'category': request.POST.get('category'),  # Doit être l'ID maintenant
+            'list': list_id,
+            'board': request.POST.get('board'),
             'description': request.POST.get('description'),
-            'start_date': request.POST.get('start_date'),
-            'end_date': request.POST.get('end_date'),
-            'priority': request.POST.get('priority'),
+            'due_date': request.POST.get('due_date'),
+            'position': request.POST.get('position', 0),
         }
-        response = requests.post(API_BASE_URL + 'tasks/', headers=headers, data=data)
-
-        if response.status_code == 201:
-            return redirect('tasks-list')
+        response = requests.post(API_BASE_URL + 'cards/', headers=headers, data=data)
+        if response.status_code in (200, 201):
+            return redirect('card-list', list_id=list_id)
         else:
-            print(response.status_code)
-            print(response.text)
-            messages.error(request, 'Erreur lors de la création')
-
-    # On récupère les catégories de l’API
-    categories_response = requests.get(API_BASE_URL + 'categories/', headers=headers)
-    categories = categories_response.json()['data'] if categories_response.status_code == 200 else []
-
-    return render(request, 'tasks/create_task.html', {'categories': categories})
+            messages.error(request, 'Erreur lors de la création de la carte')
+    return render(request, 'cards/create_card.html', {'list_id': list_id})
 
 @login_required
-def delete_task(request, task_id):
-    token = Token.objects.get(user=request.user).key
-    headers = {'Authorization': f'Token {token}'}
-
-    response = requests.delete(f'{API_BASE_URL}tasks/{task_id}/', headers=headers)
-
-    if response.status_code == 204:
-        messages.success(request, 'Tâche supprimée')
-    else:
-        messages.error(request, 'Erreur de suppression')
-
-    return redirect('tasks-list')
-
-
-@login_required
-def category_list(request):
+def label_list(request):
     token, _ = Token.objects.get_or_create(user=request.user)
- 
-    response = requests.get(API_BASE_URL + 'categories/')
-    categories = response.json()['data'] if response.status_code == 200 else []
-    return render(request, 'categories/category_list.html', {'categories': categories})
+    headers = {'Authorization': f'Token {token}'}
+    response = requests.get(API_BASE_URL + 'labels/', headers=headers)
+    labels = response.json().get('results', []) if response.status_code == 200 else []
+    return render(request, 'labels/label_list.html', {'labels': labels})

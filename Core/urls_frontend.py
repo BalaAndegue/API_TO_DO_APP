@@ -15,14 +15,12 @@ urlpatterns = [
     path('password-reset-sent/<str:reset_id>/', views.PasswordResetSent, name='password-reset-sent'),
     path('reset-password/<str:reset_id>/', views.ResetPassword, name='reset-password'),
 
+    
 
-
-    # Task Frontend
-    path('tasks-list/', views.task_list, name='tasks-list'),
-    path('tasks-create/', views.create_task, name='tasks-create'),
-
-
-    # Category Frontend
-    path('categories-list/', views.category_list, name='categories-list'),
-    path('categories-create/', views.create_task, name='tasks-create'),
+    # Trello-like objects (à implémenter dans views.py si besoin)
+    path('boards/', views.board_list, name='board-list'),
+    path('boards/create/', views.create_board, name='board-create'),
+    path('lists/', views.list_list, name='list-list'),
+    path('cards/', views.card_list, name='card-list'),
+    path('labels/', views.label_list, name='label-list'),
 ]
