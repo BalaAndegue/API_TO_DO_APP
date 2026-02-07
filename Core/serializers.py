@@ -1,12 +1,12 @@
 from rest_framework import serializers
-from .models import InvitedUserOnTask, Task, Category, PasswordReset, User, Board, List, Card, Label, BoardMember, CardMember, CardLabel, Checklist, ChecklistItem, Comment, Attachment, Activity
+from .models import PasswordReset,  User, Board, List, Card, Label, BoardMember, CardMember, CardLabel, Checklist, ChecklistItem, Comment, Attachment, Activity
 
 
 # Serializer pour l'enregistrement et la représentation des utilisateurs
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'avatar', 'password']
+        fields = ['user_id', 'username', 'email', 'password']
         extra_kwargs = {
             'password': {'write_only': True}  # Le mot de passe ne sera jamais renvoyé côté client
         }
@@ -65,11 +65,6 @@ class PasswordResetSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['reset_id', 'created_when']
 
-class InvitedUserOnTaskSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = InvitedUserOnTask
-        fields = ['id_task', "email_invited_user"]
-        read_only_fields = ['inviter', 'invited_at']  # L’utilisateur qui invite est ajouté automatiquement
 
 class BoardSerializer(serializers.ModelSerializer):
     class Meta:

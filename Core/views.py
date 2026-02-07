@@ -284,3 +284,11 @@ def create_card(request, list_id):
         else:
             messages.error(request, 'Erreur lors de la création de la carte')
     return render(request, 'cards/create_card.html', {'list_id': list_id})
+
+@login_required
+def label_list(request):
+    token, _ = Token.objects.get_or_create(user=request.user)
+    headers = {'Authorization': f'Token {token}'}
+    response = requests.get(API_BASE_URL + 'labels/', headers=headers)
+    labels = response.json().get('results', []) if response.status_code == 200 else []
+    return render(request, 'labels/label_list.html', {'labels': labels})
