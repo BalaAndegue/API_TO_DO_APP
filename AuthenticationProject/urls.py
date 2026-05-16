@@ -22,9 +22,18 @@ from rest_framework import permissions
 from rest_framework.authentication import TokenAuthentication
 
 api_info = openapi.Info(
-    title="TO Do App API",
+    title="Collaborative Workspace API",
     default_version='v1',
-    description="Documentation de l'API",
+    description=(
+        "REST API for a Trello-like collaborative workspace.\n\n"
+        "**Authentication** — All endpoints (except `/register/` and `/login/`) require a token:\n"
+        "```\nAuthorization: Token <your_token>\n```\n\n"
+        "**Key resources:** Boards → Lists → Cards → Checklists / Labels / Comments / Attachments\n\n"
+        "**Roles:** Each board has members with roles `admin`, `member`, or `observer`."
+    ),
+    terms_of_service="https://www.example.com/terms/",
+    contact=openapi.Contact(email="contact@example.com"),
+    license=openapi.License(name="MIT License"),
 )
 
 schema_view = get_schema_view(
