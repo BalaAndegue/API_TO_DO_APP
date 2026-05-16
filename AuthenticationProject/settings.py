@@ -15,8 +15,15 @@ Secrets management:
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load variables from .env (ignored by git) into os.environ.
+# In production, set env vars directly on the server — no .env file needed.
+# .env.local is used locally (not committed to git).
+# In production, set env vars directly on the server — no file needed.
+load_dotenv(BASE_DIR / '.env.local')
 
 
 # ---------------------------------------------------------------------------

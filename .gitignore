@@ -1,6 +1,8 @@
-# Fichiers d'environnement
+# Fichiers d'environnement (secrets locaux — ne jamais committer)
 .env
 *.env
+.env.local
+.env.*.local
 .venv/
 venv/
 
