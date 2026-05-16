@@ -1,48 +1,63 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions
 from django.db.models import Q
 from Core.models import Comment
 from Core.serializers import CommentSerializer
-from Core.permissions import IsBoardMember
+
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Comment.objects.none()
         user = self.request.user
-        return Comment.objects.filter(
-            Q(card__board__visibility='public') | 
-            Q(card__board__board_members__user=user) | 
+        qs = Comment.objects.filter(
+            Q(card__board__visibility='public') |
+            Q(card__board__board_members__user=user) |
             Q(card__board__creator=user)
         ).distinct()
 
-    def perform_create(self, serializer):
-        # Additional check: User must be member of the board to comment
-        card = serializer.validated_data['card']
+        card_id = self.request.query_params.get('card')
+        if card_id:
+            qs = qs.filter(card_id=card_id)
+
+        return qs.select_related('card__board', 'user')
+
+    def _check_board_membership(self, card):
         board = card.board
-        if board.visibility != 'public' and not (
-            board.creator == self.request.user or 
+        if board.visibility == 'public':
+            return
+        is_member = (
+            board.creator == self.request.user or
             board.board_members.filter(user=self.request.user).exists()
-        ):
-             raise permissions.PermissionDenied("You are not a member of this board.")
+        )
+        if not is_member:
+            raise permissions.PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+
+    def perform_create(self, serializer):
+        self._check_board_membership(serializer.validated_data['card'])
         serializer.save(user=self.request.user)
 
     def perform_update(self, serializer):
         obj = self.get_object()
-        # Only comment author or board admin can edit
+        board = obj.card.board
         is_author = obj.user == self.request.user
-        is_admin = obj.card.board.board_members.filter(user=self.request.user, role='admin').exists()
-        
+        is_admin = (
+            board.creator == self.request.user or
+            board.board_members.filter(user=self.request.user, role='admin').exists()
+        )
         if not (is_author or is_admin):
-            raise permissions.PermissionDenied("Not allowed to edit this comment.")
-        
+            raise permissions.PermissionDenied("Vous ne pouvez modifier que vos propres commentaires.")
         serializer.save()
 
     def perform_destroy(self, instance):
-        # Only comment author or board admin can delete
+        board = instance.card.board
         is_author = instance.user == self.request.user
-        is_admin = instance.card.board.board_members.filter(user=self.request.user, role='admin').exists()
-        
+        is_admin = (
+            board.creator == self.request.user or
+            board.board_members.filter(user=self.request.user, role='admin').exists()
+        )
         if not (is_author or is_admin):
-             raise permissions.PermissionDenied("Not allowed to delete this comment.")
+            raise permissions.PermissionDenied("Vous ne pouvez supprimer que vos propres commentaires.")
         instance.delete()
