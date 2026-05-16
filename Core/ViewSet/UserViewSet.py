@@ -3,220 +3,171 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404
-from rest_framework.exceptions import ValidationError, PermissionDenied, NotAuthenticated
+from rest_framework.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from Core.models import User
 from Core.serializers import UserSerializer, LoginSerializer
+from Core.permissions import IsOwner
 from rest_framework.permissions import AllowAny
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from drf_spectacular.utils import extend_schema
 
 
 class RegisterAPIView(APIView):
-    """
-    API pour enregistrer un nouvel utilisateur.
-    """
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(
         request_body=UserSerializer,
         responses={
-            200: openapi.Response(description="Utilisateur créé avec succès"),
-            400: openapi.Response(description="Erreur de validation"),
-        }
+            201: openapi.Response("Utilisateur créé avec succès"),
+            400: openapi.Response("Erreur de validation"),
+        },
+        operation_summary="Créer un compte",
+        tags=["Authentification"],
     )
     def post(self, request):
-        try:
-            serializer = UserSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            user = serializer.save()
-            token, _ = Token.objects.get_or_create(user=user)
-            return Response({
+        serializer = UserSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {'success': False, 'message': "Échec de l'enregistrement.", 'errors': serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user = serializer.save()
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response(
+            {
                 'success': True,
-                'message': 'Utilisateur créé avec succès',
-                'data': {
-                    'token': token.key,
-                    'user': UserSerializer(user).data
-                }
-            }, status=status.HTTP_200_OK)
-        except ValidationError as e:
-            return Response({
-                'success': False,
-                'message': "Échec de l'enregistrement",
-                'error': e.detail
-            }, status=status.HTTP_400_BAD_REQUEST)
+                'message': 'Compte créé avec succès.',
+                'data': {'token': token.key, 'user': UserSerializer(user).data},
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class LoginAPIView(APIView):
-    """
-    API pour se connecter avec email et mot de passe.
-    """
     permission_classes = [AllowAny]
+
     @swagger_auto_schema(
         request_body=LoginSerializer,
         responses={
-            200: openapi.Response(description="Connexion réussie"),
-            400: openapi.Response(description="Échec de connexion"),
-        }
+            200: openapi.Response("Connexion réussie"),
+            400: openapi.Response("Identifiants invalides"),
+        },
+        operation_summary="Se connecter",
+        tags=["Authentification"],
     )
     def post(self, request):
-        try:
-            serializer = LoginSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            user = serializer.validated_data
-            token, _ = Token.objects.get_or_create(user=user)
-            return Response({
+        serializer = LoginSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {'success': False, 'message': "Connexion échouée.", 'errors': serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user = serializer.validated_data
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response(
+            {
                 'success': True,
-                'message': 'Connexion réussie',
-                'data': {
-                    'token': token.key,
-                    'user': UserSerializer(user).data
-                }
-            }, status=status.HTTP_200_OK)
-        except ValidationError as e:
-            return Response({
-                'success': False,
-                'message': "Connexion échouée",
-                'error': e.detail.get('non_field_errors', ["Erreur inconnue"])[0]
-            }, status=status.HTTP_400_BAD_REQUEST)
+                'message': 'Connexion réussie.',
+                'data': {'token': token.key, 'user': UserSerializer(user).data},
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class LogoutAPIView(APIView):
-    """
-    API pour se déconnecter (nécessite d'être authentifié).
-    """
     permission_classes = [permissions.IsAuthenticated]
 
-    @extend_schema(
-        request=None,
-        responses={200: None},
-        tags=["Authentification"],
-        summary="Déconnexion",
-        description="Supprime le token d'authentification de l'utilisateur connecté."
-    )
     def post(self, request):
         try:
             request.user.auth_token.delete()
-            return Response({
-                'success': True,
-                'message': 'Déconnexion réussie'
-            }, status=status.HTTP_200_OK)
+            return Response({'success': True, 'message': 'Déconnexion réussie.'}, status=status.HTTP_200_OK)
         except AttributeError:
-            return Response({
-                'success': False,
-                'message': 'Aucun token à supprimer'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        except Exception:
-            return Response({
-                'success': False,
-                'message': 'Erreur lors de la déconnexion'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'success': False, 'message': 'Aucun token actif.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+    """
+    Endpoints utilisateur. Chaque utilisateur ne peut modifier/supprimer que son propre profil.
+    """
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def list(self, request, *args, **kwargs):
-        try:
-            users = self.get_queryset()
-            serializer = self.get_serializer(users, many=True)
-            return Response({
-                'success': True,
-                'message': 'Liste des utilisateurs récupérée avec succès',
-                'data': serializer.data
-            }, status=status.HTTP_200_OK)
-        except Exception:
-            return Response({
-                'success': False,
-                'message': 'Erreur lors de la récupération des utilisateurs'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return User.objects.none()
+        return User.objects.all()
 
-    def retrieve(self, request, *args, **kwargs):
-        try:
-            user = self.get_object()
-            serializer = self.get_serializer(user)
-            return Response({
-                'success': True,
-                'message': 'Utilisateur récupéré avec succès',
-                'data': serializer.data
-            }, status=status.HTTP_200_OK)
-        except Exception:
-            return Response({
-                'success': False,
-                'message': 'Utilisateur introuvable'
-            }, status=status.HTTP_404_NOT_FOUND)
-
-    def create(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
-            return Response({
-                'success': True,
-                'message': 'Utilisateur créé avec succès',
-                'data': serializer.data
-            }, status=status.HTTP_201_CREATED)
-        except ValidationError as e:
-            return Response({
-                'success': False,
-                'message': "Échec de la création",
-                'error': e.detail
-            }, status=status.HTTP_400_BAD_REQUEST)
+    def get_permissions(self):
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsOwner()]
+        return [permissions.IsAuthenticated()]
 
     def update(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data)
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
-            return Response({
-                'success': True,
-                'message': 'Utilisateur mis à jour avec succès',
-                'data': serializer.data
-            }, status=status.HTTP_200_OK)
-        except ValidationError as e:
-            return Response({
-                'success': False,
-                'message': "Échec de la mise à jour",
-                'error': e.detail
-            }, status=status.HTTP_400_BAD_REQUEST)
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {'success': True, 'message': 'Profil mis à jour.', 'data': serializer.data},
+            status=status.HTTP_200_OK,
+        )
 
     def destroy(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            self.perform_destroy(instance)
-            return Response({
-                'success': True,
-                'message': 'Utilisateur supprimé avec succès'
-            }, status=status.HTTP_204_NO_CONTENT)
-        except Exception:
-            return Response({
-                'success': False,
-                'message': 'Erreur lors de la suppression'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+        instance.delete()
+        return Response({'success': True, 'message': 'Compte supprimé.'}, status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def reset_password(self, request, pk=None):
-        user = get_object_or_404(User, pk=pk)
-        new_password = request.data.get("new_password")
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def me(self, request):
+        """Return the authenticated user's profile."""
+        return Response(
+            {'success': True, 'data': UserSerializer(request.user).data},
+            status=status.HTTP_200_OK,
+        )
+
+    @swagger_auto_schema(
+        method='post',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['new_password'],
+            properties={
+                'new_password': openapi.Schema(type=openapi.TYPE_STRING),
+            },
+        ),
+        responses={200: "Mot de passe mis à jour.", 400: "Validation échouée."},
+        operation_summary="Changer son mot de passe",
+        tags=["Utilisateurs"],
+    )
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def change_password(self, request):
+        """Change the authenticated user's own password."""
+        new_password = request.data.get('new_password')
         if not new_password:
-            return Response({
-                'success': False,
-                'message': 'Nouveau mot de passe requis'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
+            return Response(
+                {'success': False, 'message': 'Le nouveau mot de passe est requis.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
-            user.set_password(new_password)
-            user.save()
-            return Response({
+            validate_password(new_password, user=request.user)
+        except DjangoValidationError as e:
+            return Response(
+                {'success': False, 'message': 'Mot de passe invalide.', 'errors': list(e.messages)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        request.user.set_password(new_password)
+        request.user.save()
+        Token.objects.filter(user=request.user).delete()
+        token = Token.objects.create(user=request.user)
+        return Response(
+            {
                 'success': True,
-                'message': 'Mot de passe mis à jour avec succès'
-            }, status=status.HTTP_200_OK)
-        except Exception:
-            return Response({
-                'success': False,
-                'message': 'Erreur lors de la mise à jour du mot de passe'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                'message': 'Mot de passe mis à jour. Reconnectez-vous avec votre nouveau token.',
+                'data': {'token': token.key},
+            },
+            status=status.HTTP_200_OK,
+        )
