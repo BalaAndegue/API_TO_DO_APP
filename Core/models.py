@@ -22,7 +22,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.AutoField(primary_key=True)
     username = models.CharField(max_length=50, unique=True, db_index=True)
     email = models.EmailField(max_length=100, unique=True, db_index=True)
-    password_hash = models.CharField(max_length=255)
     first_name = models.CharField(max_length=50, blank=True)
     last_name = models.CharField(max_length=50, blank=True)
     bio = models.TextField(blank=True, null=True)
