@@ -9,6 +9,10 @@ class BoardMemberViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        # Short-circuit for Swagger schema generation
+        if getattr(self, 'swagger_fake_view', False):
+            return BoardMember.objects.none()
+        
         # Show members of boards current user is a member of
         user = self.request.user
         return BoardMember.objects.filter(board__board_members__user=user).distinct()
