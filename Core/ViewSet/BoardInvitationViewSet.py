@@ -1,25 +1,40 @@
+from django.utils.decorators import method_decorator
 from rest_framework import viewsets, permissions, status, mixins
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.db import transaction
 from Core.models import BoardInvitation, BoardMember
 from Core.serializers import BoardInvitationSerializer
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 import logging
 
 logger = logging.getLogger(__name__)
 
 
+@method_decorator(name='list', decorator=swagger_auto_schema(
+    operation_summary='Lister les invitations en attente',
+    operation_description=(
+        'Retourne les invitations des tableaux que vous administrez. '
+        'Pour inviter quelqu\'un, utiliser **POST /boards/{id}/invite/**.'
+    ),
+    tags=['Invitations'],
+))
+@method_decorator(name='retrieve', decorator=swagger_auto_schema(
+    operation_summary='Détail d\'une invitation',
+    tags=['Invitations'],
+))
+@method_decorator(name='destroy', decorator=swagger_auto_schema(
+    operation_summary='Annuler une invitation',
+    operation_description='Supprime l\'invitation. L\'email invité ne pourra plus accepter le token.',
+    tags=['Invitations'],
+))
 class BoardInvitationViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
-    """
-    Invitations management.
-    - List: shows invitations for boards the user administers.
-    - accept: POST /invitations/accept/ with {token} to join a board.
-    """
     serializer_class = BoardInvitationSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -27,12 +42,46 @@ class BoardInvitationViewSet(
         if getattr(self, 'swagger_fake_view', False):
             return BoardInvitation.objects.none()
         user = self.request.user
-        # Only see invitations for boards you administer
         return BoardInvitation.objects.filter(
             board__board_members__user=user,
             board__board_members__role=BoardMember.Role.ADMIN,
         ).select_related('board', 'inviter').distinct()
 
+    @swagger_auto_schema(
+        method='post',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['token'],
+            properties={
+                'token': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format='uuid',
+                    description='Token UUID reçu dans l\'email d\'invitation.',
+                ),
+            },
+        ),
+        responses={
+            200: openapi.Response(
+                description='Invitation acceptée — utilisateur ajouté au tableau.',
+                examples={'application/json': {
+                    'success': True,
+                    'message': "Invitation acceptée. Bienvenue dans le tableau !",
+                    'board_id': 1,
+                    'board_name': 'Mon tableau',
+                }},
+            ),
+            400: 'Token manquant.',
+            404: 'Token invalide ou invitation déjà utilisée.',
+        },
+        operation_summary='Accepter une invitation',
+        operation_description=(
+            'Valide le token UUID reçu par email et ajoute l\'utilisateur connecté '
+            'comme **member** du tableau correspondant.\n\n'
+            'L\'opération est atomique : si l\'utilisateur est déjà membre, '
+            'l\'invitation est quand même marquée comme acceptée.'
+        ),
+        tags=['Invitations'],
+    )
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def accept(self, request):
         token = request.data.get('token')

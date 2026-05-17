@@ -1,40 +1,73 @@
-from rest_framework import viewsets, permissions, status
-from rest_framework.response import Response
+from django.utils.decorators import method_decorator
+from rest_framework import viewsets, permissions
 from Core.models import BoardMember
 from Core.serializers import BoardMemberSerializer
 from Core.permissions import IsBoardAdmin
+from drf_yasg.utils import swagger_auto_schema
 
+
+@method_decorator(name='list', decorator=swagger_auto_schema(
+    operation_summary='Lister les membres des tableaux',
+    operation_description='Retourne tous les membres des tableaux auxquels l\'utilisateur appartient.',
+    tags=['Board Members'],
+))
+@method_decorator(name='create', decorator=swagger_auto_schema(
+    operation_summary='Ajouter un membre directement',
+    operation_description=(
+        'Ajoute un utilisateur comme membre d\'un tableau sans passer par une invitation. '
+        'Requiert le rôle **admin**. Préférer **POST /boards/{id}/invite/** pour envoyer un email.'
+    ),
+    tags=['Board Members'],
+))
+@method_decorator(name='retrieve', decorator=swagger_auto_schema(
+    operation_summary='Détail d\'un membre',
+    tags=['Board Members'],
+))
+@method_decorator(name='update', decorator=swagger_auto_schema(
+    operation_summary='Remplacer le rôle d\'un membre (remplacement complet)',
+    operation_description='Requiert le rôle **admin** sur le tableau.',
+    tags=['Board Members'],
+))
+@method_decorator(name='partial_update', decorator=swagger_auto_schema(
+    operation_summary='Changer le rôle d\'un membre',
+    operation_description=(
+        'Change le rôle d\'un membre (`admin`, `member`, `observer`). '
+        'Requiert le rôle **admin** sur le tableau.'
+    ),
+    tags=['Board Members'],
+))
+@method_decorator(name='destroy', decorator=swagger_auto_schema(
+    operation_summary='Retirer un membre du tableau',
+    operation_description='Requiert le rôle **admin** sur le tableau.',
+    tags=['Board Members'],
+))
 class BoardMemberViewSet(viewsets.ModelViewSet):
     serializer_class = BoardMemberSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Short-circuit for Swagger schema generation
         if getattr(self, 'swagger_fake_view', False):
             return BoardMember.objects.none()
-        
-        # Show members of boards current user is a member of
         user = self.request.user
-        return BoardMember.objects.filter(board__board_members__user=user).distinct()
+        return BoardMember.objects.filter(
+            board__board_members__user=user
+        ).distinct().select_related('board', 'user')
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsBoardAdmin()] # Only admins can manage members directly
+            return [IsBoardAdmin()]
         return [permissions.IsAuthenticated()]
 
     def perform_create(self, serializer):
-        # Ensure only members can be added to boards user is admin of
         board = serializer.validated_data['board']
-         # Check if current user is admin of this board
-        if not (board.creator == self.request.user or 
+        if not (board.creator == self.request.user or
                 board.board_members.filter(user=self.request.user, role='admin').exists()):
-             raise permissions.PermissionDenied("Must be an admin to add members.")
+            raise permissions.PermissionDenied("Seul un admin peut ajouter des membres.")
         serializer.save()
 
     def perform_destroy(self, instance):
-        # Check permissions
         board = instance.board
-        if not (board.creator == self.request.user or 
+        if not (board.creator == self.request.user or
                 board.board_members.filter(user=self.request.user, role='admin').exists()):
-             raise permissions.PermissionDenied("Must be an admin to remove members.")
+            raise permissions.PermissionDenied("Seul un admin peut retirer des membres.")
         instance.delete()
