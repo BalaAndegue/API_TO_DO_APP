@@ -70,6 +70,11 @@ def _user_accessible_boards(user):
 class BoardViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_permissions(self):
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsBoardAdmin()]
+        return [permissions.IsAuthenticated()]
+
     def get_serializer_class(self):
         if self.action == 'list':
             return BoardListSerializer
@@ -95,6 +100,21 @@ class BoardViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         board = serializer.save(creator=self.request.user)
         BoardMember.objects.create(board=board, user=self.request.user, role=BoardMember.Role.ADMIN)
+
+    def perform_destroy(self, instance):
+        # Temporarily disconnect post_delete signals that create Activity rows
+        # for cascaded sub-objects; those rows would orphan once the board is
+        # gone and cause a FK integrity error at test teardown.
+        from django.db.models.signals import post_delete
+        from Core.signals import on_member_removed, on_comment_deleted
+        from Core.models import Comment
+        post_delete.disconnect(on_member_removed, sender=BoardMember)
+        post_delete.disconnect(on_comment_deleted, sender=Comment)
+        try:
+            instance.delete()
+        finally:
+            post_delete.connect(on_member_removed, sender=BoardMember)
+            post_delete.connect(on_comment_deleted, sender=Comment)
 
     @swagger_auto_schema(
         method='post',
@@ -122,6 +142,9 @@ class BoardViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated, IsBoardAdmin])
     def invite(self, request, pk=None):
         board = self.get_object()
+        if not (board.creator == request.user or
+                board.board_members.filter(user=request.user, role=BoardMember.Role.ADMIN).exists()):
+            return Response({'success': False, 'message': "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
         email = request.data.get('email', '').strip().lower()
         if not email:
             return Response({'success': False, 'message': "L'email est requis."}, status=status.HTTP_400_BAD_REQUEST)
