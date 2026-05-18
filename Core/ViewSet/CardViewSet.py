@@ -1,8 +1,9 @@
 from django.utils.decorators import method_decorator
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions
+from rest_framework.exceptions import PermissionDenied, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Q
+from django.db.models import Q, F
 from django.db import transaction
 from Core.models import Card, List
 from Core.serializers import CardSerializer
@@ -100,7 +101,7 @@ class CardViewSet(viewsets.ModelViewSet):
             board.board_members.filter(user=self.request.user).exists()
         )
         if board.visibility != 'public' and not is_member:
-            raise permissions.PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
         serializer.save(board=board)
 
     def perform_update(self, serializer):
@@ -110,7 +111,7 @@ class CardViewSet(viewsets.ModelViewSet):
             board.board_members.filter(user=self.request.user).exists()
         )
         if not is_member:
-            raise permissions.PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
         serializer.save()
 
     def perform_destroy(self, instance):
@@ -120,7 +121,7 @@ class CardViewSet(viewsets.ModelViewSet):
             board.board_members.filter(user=self.request.user).exists()
         )
         if not is_member:
-            raise permissions.PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
         instance.delete()
 
     @swagger_auto_schema(
@@ -151,7 +152,7 @@ class CardViewSet(viewsets.ModelViewSet):
     def move(self, request, pk=None):
         card = self.get_object()
         new_position = request.data.get('position')
-        new_list_id = request.data.get('list_id')
+        new_list_id  = request.data.get('list_id')
 
         if new_position is None:
             return Response(
@@ -159,19 +160,56 @@ class CardViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        new_position = int(new_position)
+
         with transaction.atomic():
-            if new_list_id and int(new_list_id) != card.list_id:
+            old_list_id  = card.list_id
+            old_position = card.position
+
+            if new_list_id and int(new_list_id) != old_list_id:
+                # ── Cross-list move ──────────────────────────────────────────
                 try:
                     new_list = List.objects.select_related('board').get(pk=new_list_id)
                 except List.DoesNotExist:
-                    return Response({'success': False, 'message': "Liste introuvable."}, status=status.HTTP_404_NOT_FOUND)
+                    return Response(
+                        {'success': False, 'message': "Liste introuvable."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
                 if new_list.board_id != card.board_id:
                     return Response(
                         {'success': False, 'message': "Impossible de déplacer vers un tableau différent."},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+                # Close the gap in the source list
+                Card.objects.filter(
+                    list_id=old_list_id, position__gt=old_position
+                ).update(position=F('position') - 1)
+                # Open a slot in the destination list
+                Card.objects.filter(
+                    list_id=new_list_id, position__gte=new_position
+                ).update(position=F('position') + 1)
                 card.list = new_list
-            card.position = int(new_position)
+            else:
+                # ── Same-list move ───────────────────────────────────────────
+                if new_position < old_position:
+                    # Moving up: shift intermediate cards down
+                    Card.objects.filter(
+                        list_id=old_list_id,
+                        position__gte=new_position,
+                        position__lt=old_position,
+                    ).exclude(pk=card.pk).update(position=F('position') + 1)
+                elif new_position > old_position:
+                    # Moving down: shift intermediate cards up
+                    Card.objects.filter(
+                        list_id=old_list_id,
+                        position__gt=old_position,
+                        position__lte=new_position,
+                    ).exclude(pk=card.pk).update(position=F('position') - 1)
+                else:
+                    # No-op
+                    return Response({'success': True, 'data': CardSerializer(card).data})
+
+            card.position = new_position
             card.save(update_fields=['list', 'position', 'updated_at'])
 
         return Response({'success': True, 'data': CardSerializer(card).data})
