@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'drf_yasg',
     'corsheaders',
+    'channels',
     'Core',
 ]
 
@@ -82,6 +83,25 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'AuthenticationProject.urls'
 WSGI_APPLICATION = 'AuthenticationProject.wsgi.application'
+ASGI_APPLICATION  = 'AuthenticationProject.asgi.application'
+
+# ---------------------------------------------------------------------------
+# Django Channels — WebSocket
+# ---------------------------------------------------------------------------
+# In-memory layer for development (single process, no Redis needed).
+# Switch to RedisChannelLayer for production:
+#   pip install channels-redis
+#   CHANNEL_LAYERS = {
+#       'default': {
+#           'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#           'CONFIG': {'hosts': [os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379')]},
+#       }
+#   }
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    }
+}
 
 
 # ---------------------------------------------------------------------------
