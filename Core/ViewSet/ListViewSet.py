@@ -1,6 +1,10 @@
 from django.utils.decorators import method_decorator
 from rest_framework import viewsets, permissions
-from django.db.models import Q
+from rest_framework.exceptions import PermissionDenied, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.db.models import Q, F
+from django.db import transaction
 from Core.models import List
 from Core.serializers import ListSerializer
 from drf_yasg.utils import swagger_auto_schema
@@ -75,7 +79,7 @@ class ListViewSet(viewsets.ModelViewSet):
             board.board_members.filter(user=self.request.user).exists()
         )
         if board.visibility != 'public' and not is_member:
-            raise permissions.PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
         serializer.save()
 
     def perform_update(self, serializer):
@@ -85,7 +89,7 @@ class ListViewSet(viewsets.ModelViewSet):
             board.board_members.filter(user=self.request.user).exists()
         )
         if not is_member:
-            raise permissions.PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
         serializer.save()
 
     def perform_destroy(self, instance):
@@ -95,5 +99,64 @@ class ListViewSet(viewsets.ModelViewSet):
             board.board_members.filter(user=self.request.user, role='admin').exists()
         )
         if not is_admin:
-            raise permissions.PermissionDenied("Seuls les admins peuvent supprimer une liste.")
+            raise PermissionDenied("Seuls les admins peuvent supprimer une liste.")
         instance.delete()
+
+    @swagger_auto_schema(
+        method='post',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['position'],
+            properties={
+                'position': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description='Nouvelle position (index 0) de la liste dans le tableau.',
+                ),
+            },
+        ),
+        responses={
+            200: ListSerializer,
+            400: "Position manquante ou invalide.",
+        },
+        operation_summary='Déplacer une liste (colonne)',
+        operation_description=(
+            'Réordonne les colonnes du tableau. Utilisé par le front-end après un drag-and-drop. '
+            'Toutes les autres listes du même tableau sont décalées automatiquement.'
+        ),
+        tags=['Lists'],
+    )
+    @action(detail=True, methods=['post'])
+    def move(self, request, pk=None):
+        lst = self.get_object()
+        new_position = request.data.get('position')
+
+        if new_position is None:
+            return Response(
+                {'success': False, 'message': "Le champ 'position' est requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        new_position = int(new_position)
+        old_position = lst.position
+
+        if new_position == old_position:
+            return Response({'success': True, 'data': ListSerializer(lst).data})
+
+        with transaction.atomic():
+            if new_position < old_position:
+                List.objects.filter(
+                    board_id=lst.board_id,
+                    position__gte=new_position,
+                    position__lt=old_position,
+                ).exclude(pk=lst.pk).update(position=F('position') + 1)
+            else:
+                List.objects.filter(
+                    board_id=lst.board_id,
+                    position__gt=old_position,
+                    position__lte=new_position,
+                ).exclude(pk=lst.pk).update(position=F('position') - 1)
+
+            lst.position = new_position
+            lst.save(update_fields=['position', 'updated_at'])
+
+        return Response({'success': True, 'data': ListSerializer(lst).data})
