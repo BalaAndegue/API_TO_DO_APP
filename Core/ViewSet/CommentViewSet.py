@@ -1,5 +1,6 @@
 from django.utils.decorators import method_decorator
 from rest_framework import viewsets, permissions
+from rest_framework.exceptions import PermissionDenied
 from django.db.models import Q
 from Core.models import Comment
 from Core.serializers import CommentSerializer
@@ -73,7 +74,7 @@ class CommentViewSet(viewsets.ModelViewSet):
             board.board_members.filter(user=self.request.user).exists()
         )
         if not is_member:
-            raise permissions.PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
 
     def perform_create(self, serializer):
         self._check_board_membership(serializer.validated_data['card'])
@@ -88,7 +89,7 @@ class CommentViewSet(viewsets.ModelViewSet):
             board.board_members.filter(user=self.request.user, role='admin').exists()
         )
         if not (is_author or is_admin):
-            raise permissions.PermissionDenied("Vous ne pouvez modifier que vos propres commentaires.")
+            raise PermissionDenied("Vous ne pouvez modifier que vos propres commentaires.")
         serializer.save()
 
     def perform_destroy(self, instance):
@@ -99,5 +100,5 @@ class CommentViewSet(viewsets.ModelViewSet):
             board.board_members.filter(user=self.request.user, role='admin').exists()
         )
         if not (is_author or is_admin):
-            raise permissions.PermissionDenied("Vous ne pouvez supprimer que vos propres commentaires.")
+            raise PermissionDenied("Vous ne pouvez supprimer que vos propres commentaires.")
         instance.delete()

@@ -1,5 +1,6 @@
 from django.utils.decorators import method_decorator
 from rest_framework import viewsets, permissions
+from rest_framework.exceptions import PermissionDenied
 from Core.models import BoardMember
 from Core.serializers import BoardMemberSerializer
 from Core.permissions import IsBoardAdmin
@@ -62,12 +63,12 @@ class BoardMemberViewSet(viewsets.ModelViewSet):
         board = serializer.validated_data['board']
         if not (board.creator == self.request.user or
                 board.board_members.filter(user=self.request.user, role='admin').exists()):
-            raise permissions.PermissionDenied("Seul un admin peut ajouter des membres.")
+            raise PermissionDenied("Seul un admin peut ajouter des membres.")
         serializer.save()
 
     def perform_destroy(self, instance):
         board = instance.board
         if not (board.creator == self.request.user or
                 board.board_members.filter(user=self.request.user, role='admin').exists()):
-            raise permissions.PermissionDenied("Seul un admin peut retirer des membres.")
+            raise PermissionDenied("Seul un admin peut retirer des membres.")
         instance.delete()

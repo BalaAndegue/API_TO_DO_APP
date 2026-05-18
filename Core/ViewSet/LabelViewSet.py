@@ -1,5 +1,6 @@
 from django.utils.decorators import method_decorator
 from rest_framework import viewsets, permissions
+from rest_framework.exceptions import PermissionDenied
 from django.db.models import Q
 from Core.models import Label
 from Core.serializers import LabelSerializer
@@ -64,16 +65,16 @@ class LabelViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         board = serializer.validated_data['board']
         if not _is_board_admin_or_creator(board, self.request.user):
-            raise permissions.PermissionDenied("Seuls les admins peuvent créer des labels.")
+            raise PermissionDenied("Seuls les admins peuvent créer des labels.")
         serializer.save()
 
     def perform_update(self, serializer):
         board = self.get_object().board
         if not _is_board_admin_or_creator(board, self.request.user):
-            raise permissions.PermissionDenied("Seuls les admins peuvent modifier des labels.")
+            raise PermissionDenied("Seuls les admins peuvent modifier des labels.")
         serializer.save()
 
     def perform_destroy(self, instance):
         if not _is_board_admin_or_creator(instance.board, self.request.user):
-            raise permissions.PermissionDenied("Seuls les admins peuvent supprimer des labels.")
+            raise PermissionDenied("Seuls les admins peuvent supprimer des labels.")
         instance.delete()

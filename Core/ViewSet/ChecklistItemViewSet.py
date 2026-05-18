@@ -1,5 +1,6 @@
 from django.utils.decorators import method_decorator
 from rest_framework import viewsets, permissions
+from rest_framework.exceptions import PermissionDenied
 from django.db.models import Q
 from Core.models import ChecklistItem
 from Core.serializers import ChecklistItemSerializer
@@ -67,7 +68,7 @@ class ChecklistItemViewSet(viewsets.ModelViewSet):
             return
         if not (board.creator == self.request.user or
                 board.board_members.filter(user=self.request.user).exists()):
-            raise permissions.PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
 
     def perform_create(self, serializer):
         self._check_board_membership(serializer.validated_data['checklist'])

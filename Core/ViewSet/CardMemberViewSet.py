@@ -1,5 +1,6 @@
 from django.utils.decorators import method_decorator
 from rest_framework import viewsets, permissions
+from rest_framework.exceptions import PermissionDenied
 from django.db.models import Q
 from Core.models import CardMember
 from Core.serializers import CardMemberSerializer
@@ -67,7 +68,7 @@ class CardMemberViewSet(viewsets.ModelViewSet):
             return
         if not (board.creator == self.request.user or
                 board.board_members.filter(user=self.request.user).exists()):
-            raise permissions.PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
 
     def perform_create(self, serializer):
         card = serializer.validated_data['card']
@@ -75,7 +76,7 @@ class CardMemberViewSet(viewsets.ModelViewSet):
         user_to_add = serializer.validated_data['user']
         board = card.board
         if not board.board_members.filter(user=user_to_add).exists() and board.creator != user_to_add:
-            raise permissions.PermissionDenied("L'utilisateur assigné doit être membre du tableau.")
+            raise PermissionDenied("L'utilisateur assigné doit être membre du tableau.")
         serializer.save()
 
     def perform_destroy(self, instance):
