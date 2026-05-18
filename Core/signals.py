@@ -97,6 +97,9 @@ def on_comment_saved(sender, instance, created, **kwargs):
 
 @receiver(post_delete, sender=Comment)
 def on_comment_deleted(sender, instance, **kwargs):
+    # Guard: board or card may have been cascade-deleted already
+    if not Board.objects.filter(pk=instance.card.board_id).exists():
+        return
     _log(
         board=instance.card.board,
         user=instance.user,
@@ -142,6 +145,9 @@ def on_member_added(sender, instance, created, **kwargs):
 
 @receiver(post_delete, sender=BoardMember)
 def on_member_removed(sender, instance, **kwargs):
+    # Guard: board may have been cascade-deleted already
+    if not Board.objects.filter(pk=instance.board_id).exists():
+        return
     _log(
         board=instance.board,
         user=instance.user,
