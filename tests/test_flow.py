@@ -22,10 +22,10 @@ def _register(client, username, email, password='StrongPass123!'):
         'username': username, 'email': email, 'password': password,
     })
     assert res.status_code == status.HTTP_201_CREATED, res.json()
-    token = res.data['data']['token']
+    token = res.data['token']
     authed = APIClient()
     authed.credentials(HTTP_AUTHORIZATION=f'Token {token}')
-    return authed, res.data['data']['user']
+    return authed, res.data['user']
 
 
 # ── tests ─────────────────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ class TestCriticalPath:
             'email': 'alice@flow.com', 'password': 'StrongPass123!',
         })
         assert login_res.status_code == status.HTTP_200_OK
-        assert login_res.data['data']['token']
+        assert login_res.data['token']
 
     def test_create_board(self, api_client):
         client, _ = _register(api_client, 'alice2', 'alice2@flow.com')
@@ -108,7 +108,7 @@ class TestCriticalPath:
         invite_res = alice.post(f'{BASE}/boards/{board_id}/invite/', {
             'email': 'bob3@flow.com',
         })
-        assert invite_res.status_code == status.HTTP_201_CREATED
+        assert invite_res.status_code == status.HTTP_200_OK
 
         # 9. Get invitation token directly from DB
         invitation = BoardInvitation.objects.get(board_id=board_id, email='bob3@flow.com')
@@ -161,7 +161,7 @@ class TestCriticalPath:
         client, _ = _register(api_client, 'alice5', 'alice5@flow.com')
         res = client.get(f'{BASE}/users/me/')
         assert res.status_code == status.HTTP_200_OK
-        assert res.data['data']['email'] == 'alice5@flow.com'
+        assert res.data['email'] == 'alice5@flow.com'
 
     def test_unauthenticated_board_access_denied(self, api_client):
         """Anonymous requests to the API return 401, not a redirect."""

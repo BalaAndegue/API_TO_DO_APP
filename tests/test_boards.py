@@ -99,7 +99,7 @@ class TestBoardInvite:
         res = alice_client.post(f'{BASE}/boards/{board.pk}/invite/', {
             'email': carol.email,
         })
-        assert res.status_code == status.HTTP_201_CREATED
+        assert res.status_code == status.HTTP_200_OK
         assert BoardInvitation.objects.filter(board=board, email=carol.email).exists()
 
     def test_member_cannot_invite(self, bob_client, board, carol):

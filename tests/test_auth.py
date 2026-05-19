@@ -15,9 +15,8 @@ class TestRegister:
             'username': 'newuser', 'email': 'new@test.com', 'password': 'StrongPass123!',
         })
         assert res.status_code == status.HTTP_201_CREATED
-        assert res.data['success'] is True
-        assert 'token' in res.data['data']
-        assert res.data['data']['user']['email'] == 'new@test.com'
+        assert 'token' in res.data
+        assert res.data['user']['email'] == 'new@test.com'
 
     def test_duplicate_email_rejected(self, api_client, alice):
         res = api_client.post(f'{BASE}/register/', {
@@ -49,7 +48,7 @@ class TestLogin:
             'email': alice.email, 'password': 'StrongPass123!',
         })
         assert res.status_code == status.HTTP_200_OK
-        assert 'token' in res.data['data']
+        assert 'token' in res.data
 
     def test_wrong_password(self, api_client, alice):
         res = api_client.post(f'{BASE}/login/', {
@@ -72,9 +71,7 @@ class TestLogin:
 class TestLogout:
     def test_success(self, alice_client):
         res = alice_client.post(f'{BASE}/logout/')
-        assert res.status_code == status.HTTP_200_OK
-        assert res.data['success'] is True
-        # Token must be deleted
+        assert res.status_code == status.HTTP_204_NO_CONTENT
         assert not Token.objects.filter(user=alice_client._user).exists()
 
     def test_requires_auth(self, api_client):
@@ -87,7 +84,7 @@ class TestMe:
     def test_returns_own_profile(self, alice_client, alice):
         res = alice_client.get(f'{BASE}/users/me/')
         assert res.status_code == status.HTTP_200_OK
-        assert res.data['data']['email'] == alice.email
+        assert res.data['email'] == alice.email
 
     def test_requires_auth(self, api_client):
         res = api_client.get(f'{BASE}/users/me/')
@@ -137,7 +134,7 @@ class TestUserCRUD:
     def test_update_own_profile(self, alice_client, alice):
         res = alice_client.patch(f'{BASE}/users/{alice.pk}/', {'bio': 'Updated bio'})
         assert res.status_code == status.HTTP_200_OK
-        assert res.data['data']['bio'] == 'Updated bio'
+        assert res.data['bio'] == 'Updated bio'
 
     def test_cannot_update_other_user(self, alice_client, bob):
         res = alice_client.patch(f'{BASE}/users/{bob.pk}/', {'bio': 'Hacked!'})

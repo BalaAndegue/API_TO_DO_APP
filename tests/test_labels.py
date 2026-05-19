@@ -1,6 +1,6 @@
 """
 Label endpoints: CRUD.
-Only admins can create/update/delete; members can read.
+Members can create/update; only admins can delete.
 """
 import pytest
 from rest_framework import status
@@ -34,11 +34,11 @@ class TestLabelCRUD:
         assert res.status_code == status.HTTP_201_CREATED
         assert res.data['name'] == 'Feature'
 
-    def test_member_cannot_create_label(self, bob_client, board):
+    def test_member_can_create_label(self, bob_client, board):
         res = bob_client.post(f'{BASE}/labels/', {
-            'board': board.pk, 'name': 'Hack', 'color': '#000',
+            'board': board.pk, 'name': 'Feature', 'color': '#000',
         })
-        assert res.status_code == status.HTTP_403_FORBIDDEN
+        assert res.status_code == status.HTTP_201_CREATED
 
     def test_outsider_cannot_create_label(self, carol_client, board):
         res = carol_client.post(f'{BASE}/labels/', {
@@ -57,9 +57,9 @@ class TestLabelCRUD:
         label.refresh_from_db()
         assert label.name == 'Urgent'
 
-    def test_member_cannot_update_label(self, bob_client, label):
-        res = bob_client.patch(f'{BASE}/labels/{label.pk}/', {'name': 'Hacked'})
-        assert res.status_code == status.HTTP_403_FORBIDDEN
+    def test_member_can_update_label(self, bob_client, label):
+        res = bob_client.patch(f'{BASE}/labels/{label.pk}/', {'name': 'Updated'})
+        assert res.status_code == status.HTTP_200_OK
 
     def test_admin_can_delete_label(self, alice_client, label):
         res = alice_client.delete(f'{BASE}/labels/{label.pk}/')
