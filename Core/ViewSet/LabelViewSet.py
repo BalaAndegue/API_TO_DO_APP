@@ -4,7 +4,7 @@ from rest_framework.exceptions import PermissionDenied
 from django.db.models import Q
 from Core.models import Label
 from Core.serializers import LabelSerializer
-from Core.permissions import _is_board_admin_or_creator
+from Core.permissions import _is_board_admin_or_creator, _is_board_member_or_creator
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -22,7 +22,7 @@ _LABEL_FILTERS = [
 ))
 @method_decorator(name='create', decorator=swagger_auto_schema(
     operation_summary='Créer un label',
-    operation_description='Crée un label coloré pour un tableau. Requiert le rôle **admin**.',
+    operation_description='Crée un label coloré pour un tableau. Tout membre du tableau peut créer des labels.',
     tags=['Labels'],
 ))
 @method_decorator(name='retrieve', decorator=swagger_auto_schema(
@@ -31,12 +31,12 @@ _LABEL_FILTERS = [
 ))
 @method_decorator(name='update', decorator=swagger_auto_schema(
     operation_summary='Mettre à jour un label (remplacement complet)',
-    operation_description='Requiert le rôle **admin** sur le tableau.',
+    operation_description='Tout membre du tableau peut modifier un label.',
     tags=['Labels'],
 ))
 @method_decorator(name='partial_update', decorator=swagger_auto_schema(
     operation_summary='Modifier le nom ou la couleur d\'un label',
-    operation_description='Requiert le rôle **admin** sur le tableau.',
+    operation_description='Tout membre du tableau peut modifier un label.',
     tags=['Labels'],
 ))
 @method_decorator(name='destroy', decorator=swagger_auto_schema(
@@ -64,14 +64,14 @@ class LabelViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         board = serializer.validated_data['board']
-        if not _is_board_admin_or_creator(board, self.request.user):
-            raise PermissionDenied("Seuls les admins peuvent créer des labels.")
+        if not _is_board_member_or_creator(board, self.request.user):
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
         serializer.save()
 
     def perform_update(self, serializer):
         board = self.get_object().board
-        if not _is_board_admin_or_creator(board, self.request.user):
-            raise PermissionDenied("Seuls les admins peuvent modifier des labels.")
+        if not _is_board_member_or_creator(board, self.request.user):
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
         serializer.save()
 
     def perform_destroy(self, instance):
