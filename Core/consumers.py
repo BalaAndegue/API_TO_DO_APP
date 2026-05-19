@@ -8,14 +8,21 @@ Channel group:
     board_<board_id>   — one group per board, all members share it
 
 Events broadcast (type → payload):
-    card.moved      { card_id, list_id, position }
-    card.created    { card_id, list_id, title }
-    card.updated    { card_id, fields: {...} }
-    card.deleted    { card_id }
-    list.moved      { list_id, position }
-    list.created    { list_id, board_id, name }
-    list.updated    { list_id, fields: {...} }
-    list.deleted    { list_id }
+    card.moved        { card_id, list_id, position }
+    card.created      { card_id, list_id, title }
+    card.updated      { card_id, fields: {...} }
+    card.deleted      { card_id }
+    list.moved        { list_id, position }
+    list.created      { list_id, board_id, name }
+    list.updated      { list_id, fields: {...} }
+    list.deleted      { list_id }
+    comment.created   { comment_id, card_id, user_id }
+    comment.updated   { comment_id, card_id }
+    comment.deleted   { comment_id, card_id }
+    member.added      { user_id, role }
+    member.removed    { user_id }
+    member.updated    { user_id, role }
+    board.updated     { board_id, fields: {...} }
 
 Frontend usage (JavaScript):
     const ws = new WebSocket(`ws://localhost:8000/ws/boards/1/?token=${token}`);
@@ -148,4 +155,53 @@ class BoardConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type':    'list.deleted',
             'list_id': event['list_id'],
+        }))
+
+    async def comment_created(self, event):
+        await self.send(text_data=json.dumps({
+            'type':       'comment.created',
+            'comment_id': event['comment_id'],
+            'card_id':    event['card_id'],
+            'user_id':    event['user_id'],
+        }))
+
+    async def comment_updated(self, event):
+        await self.send(text_data=json.dumps({
+            'type':       'comment.updated',
+            'comment_id': event['comment_id'],
+            'card_id':    event['card_id'],
+        }))
+
+    async def comment_deleted(self, event):
+        await self.send(text_data=json.dumps({
+            'type':       'comment.deleted',
+            'comment_id': event['comment_id'],
+            'card_id':    event['card_id'],
+        }))
+
+    async def member_added(self, event):
+        await self.send(text_data=json.dumps({
+            'type':    'member.added',
+            'user_id': event['user_id'],
+            'role':    event['role'],
+        }))
+
+    async def member_removed(self, event):
+        await self.send(text_data=json.dumps({
+            'type':    'member.removed',
+            'user_id': event['user_id'],
+        }))
+
+    async def member_updated(self, event):
+        await self.send(text_data=json.dumps({
+            'type':    'member.updated',
+            'user_id': event['user_id'],
+            'role':    event['role'],
+        }))
+
+    async def board_updated(self, event):
+        await self.send(text_data=json.dumps({
+            'type':     'board.updated',
+            'board_id': event['board_id'],
+            'fields':   event.get('fields', {}),
         }))
