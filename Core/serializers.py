@@ -13,10 +13,10 @@ from .models import (
 # ---------------------------------------------------------------------------
 
 class UserPublicSerializer(serializers.ModelSerializer):
-    """Minimal user representation embedded in other resources."""
+    """User representation embedded in nested resources (comments, members, etc.)."""
     class Meta:
         model = User
-        fields = ['user_id', 'username', 'first_name', 'last_name', 'avatar_url']
+        fields = ['user_id', 'username', 'email', 'first_name', 'last_name', 'bio', 'avatar_url']
         read_only_fields = fields
 
 
@@ -311,7 +311,7 @@ class BoardInvitationSerializer(serializers.ModelSerializer):
         model = BoardInvitation
         fields = [
             'id', 'board', 'board_name', 'inviter', 'inviter_details',
-            'email', 'token', 'accepted', 'created_at',
+            'email', 'role', 'token', 'accepted', 'created_at',
         ]
         read_only_fields = ['token', 'created_at', 'accepted', 'inviter']
 
