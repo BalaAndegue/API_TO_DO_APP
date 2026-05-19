@@ -4,6 +4,7 @@ from rest_framework.exceptions import PermissionDenied
 from django.db.models import Q
 from Core.models import Comment
 from Core.serializers import CommentSerializer
+from Core.ws_utils import ws_broadcast
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -78,7 +79,13 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         self._check_board_membership(serializer.validated_data['card'])
-        serializer.save(user=self.request.user)
+        instance = serializer.save(user=self.request.user)
+        ws_broadcast(instance.card.board_id, {
+            'type': 'comment.created',
+            'comment_id': instance.pk,
+            'card_id': instance.card_id,
+            'user_id': instance.user_id,
+        })
 
     def perform_update(self, serializer):
         obj = self.get_object()
@@ -90,7 +97,12 @@ class CommentViewSet(viewsets.ModelViewSet):
         )
         if not (is_author or is_admin):
             raise PermissionDenied("Vous ne pouvez modifier que vos propres commentaires.")
-        serializer.save()
+        instance = serializer.save()
+        ws_broadcast(instance.card.board_id, {
+            'type': 'comment.updated',
+            'comment_id': instance.pk,
+            'card_id': instance.card_id,
+        })
 
     def perform_destroy(self, instance):
         board = instance.card.board
@@ -101,4 +113,12 @@ class CommentViewSet(viewsets.ModelViewSet):
         )
         if not (is_author or is_admin):
             raise PermissionDenied("Vous ne pouvez supprimer que vos propres commentaires.")
+        board_id = instance.card.board_id
+        card_id = instance.card_id
+        comment_id = instance.pk
         instance.delete()
+        ws_broadcast(board_id, {
+            'type': 'comment.deleted',
+            'comment_id': comment_id,
+            'card_id': card_id,
+        })

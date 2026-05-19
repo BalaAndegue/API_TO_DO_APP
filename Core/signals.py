@@ -39,7 +39,7 @@ def on_board_saved(sender, instance, created, **kwargs):
         _log(
             board=instance,
             user=instance.creator,
-            action_type='create_board',
+            action_type='board_created',
             content=f"a créé le tableau « {instance.name} ».",
         )
 
@@ -89,7 +89,7 @@ def on_comment_saved(sender, instance, created, **kwargs):
         _log(
             board=instance.card.board,
             user=instance.user,
-            action_type='add_comment',
+            action_type='comment_created',
             content=f"a commenté la carte « {instance.card.title} ».",
             card=instance.card,
         )
@@ -103,7 +103,7 @@ def on_comment_deleted(sender, instance, **kwargs):
     _log(
         board=instance.card.board,
         user=instance.user,
-        action_type='delete_comment',
+        action_type='comment_deleted',
         content=f"a supprimé un commentaire sur « {instance.card.title} ».",
         card=instance.card,
     )
@@ -117,7 +117,7 @@ def on_comment_deleted(sender, instance, **kwargs):
 def on_checklist_item_saved(sender, instance, created, update_fields, **kwargs):
     if not created and update_fields and 'checked' in update_fields:
         card = instance.checklist.card
-        action = 'check_item' if instance.checked else 'uncheck_item'
+        action = 'due_date_completed' if instance.checked else 'item_unchecked'
         verb = "a coché" if instance.checked else "a décoché"
         _log(
             board=card.board,
@@ -138,7 +138,7 @@ def on_member_added(sender, instance, created, **kwargs):
         _log(
             board=instance.board,
             user=instance.user,
-            action_type='join_board',
+            action_type='member_added',
             content=f"a rejoint le tableau « {instance.board.name} » en tant que {instance.role}.",
         )
 
@@ -151,6 +151,6 @@ def on_member_removed(sender, instance, **kwargs):
     _log(
         board=instance.board,
         user=instance.user,
-        action_type='leave_board',
+        action_type='member_removed',
         content=f"a quitté le tableau « {instance.board.name} ».",
     )
