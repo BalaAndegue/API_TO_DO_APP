@@ -83,12 +83,17 @@ class Board(models.Model):
         return self.name
 
 class BoardInvitation(models.Model):
-    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='invitations')
-    inviter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_invitations')
-    email = models.EmailField() # Invite by email
-    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-    accepted = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    class Role(models.TextChoices):
+        MEMBER   = 'member',   'Member'
+        OBSERVER = 'observer', 'Observer'
+
+    board   = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='invitations')
+    inviter = models.ForeignKey(User,  on_delete=models.CASCADE, related_name='sent_invitations')
+    email   = models.EmailField()
+    role    = models.CharField(max_length=10, choices=Role.choices, default=Role.MEMBER)
+    token   = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    accepted    = models.BooleanField(default=False)
+    created_at  = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('board', 'email')
