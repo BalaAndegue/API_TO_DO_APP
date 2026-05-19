@@ -13,9 +13,10 @@ logger = logging.getLogger(__name__)
 
 
 @method_decorator(name='list', decorator=swagger_auto_schema(
-    operation_summary='Lister les invitations en attente',
+    operation_summary='Lister les invitations',
     operation_description=(
         'Retourne les invitations des tableaux que vous administrez. '
+        'Utiliser **?pending=true** pour filtrer les non acceptées. '
         'Pour inviter quelqu\'un, utiliser **POST /boards/{id}/invite/**.'
     ),
     tags=['Invitations'],
@@ -42,10 +43,14 @@ class BoardInvitationViewSet(
         if getattr(self, 'swagger_fake_view', False):
             return BoardInvitation.objects.none()
         user = self.request.user
-        return BoardInvitation.objects.filter(
+        qs = BoardInvitation.objects.filter(
             board__board_members__user=user,
             board__board_members__role=BoardMember.Role.ADMIN,
         ).select_related('board', 'inviter').distinct()
+        pending = self.request.query_params.get('pending')
+        if pending is not None:
+            qs = qs.filter(accepted=not (pending.lower() == 'true'))
+        return qs
 
     @swagger_auto_schema(
         method='post',
@@ -114,7 +119,7 @@ class BoardInvitationViewSet(
             BoardMember.objects.create(
                 board=invitation.board,
                 user=request.user,
-                role=BoardMember.Role.MEMBER,
+                role=invitation.role,
             )
 
         logger.info("User %s accepted invitation to board %s", request.user, invitation.board)

@@ -8,6 +8,7 @@ from django.conf import settings
 from Core.models import Board, BoardMember, BoardInvitation
 from Core.serializers import BoardSerializer, BoardListSerializer, BoardMemberSerializer, BoardInvitationSerializer
 from Core.permissions import IsBoardAdmin
+from Core.ws_utils import ws_broadcast
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 import logging
@@ -175,7 +176,7 @@ class BoardViewSet(viewsets.ModelViewSet):
         except Exception:
             logger.warning("Échec d'envoi d'email d'invitation pour %s", email)
 
-        return Response(BoardInvitationSerializer(invitation).data, status=status.HTTP_201_CREATED)
+        return Response(BoardInvitationSerializer(invitation).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         method='get',
@@ -206,6 +207,7 @@ class BoardViewSet(viewsets.ModelViewSet):
             return Response({'success': False, 'message': "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
         board.is_closed = True
         board.save(update_fields=['is_closed', 'updated_at'])
+        ws_broadcast(board.pk, {'type': 'board.updated', 'board_id': board.pk, 'fields': {'is_closed': True}})
         return Response({'success': True, 'message': "Tableau archivé."})
 
     @swagger_auto_schema(
@@ -224,4 +226,5 @@ class BoardViewSet(viewsets.ModelViewSet):
             return Response({'success': False, 'message': "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
         board.is_closed = False
         board.save(update_fields=['is_closed', 'updated_at'])
+        ws_broadcast(board.pk, {'type': 'board.updated', 'board_id': board.pk, 'fields': {'is_closed': False}})
         return Response({'success': True, 'message': "Tableau réouvert."})
