@@ -4,6 +4,7 @@ from rest_framework.exceptions import PermissionDenied
 from Core.models import BoardMember
 from Core.serializers import BoardMemberSerializer
 from Core.permissions import IsBoardAdmin
+from Core.ws_utils import ws_broadcast
 from drf_yasg.utils import swagger_auto_schema
 
 
@@ -55,7 +56,7 @@ class BoardMemberViewSet(viewsets.ModelViewSet):
         ).distinct().select_related('board', 'user')
 
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+        if self.action in ['create', 'update', 'partial_update']:
             return [IsBoardAdmin()]
         return [permissions.IsAuthenticated()]
 
@@ -64,11 +65,34 @@ class BoardMemberViewSet(viewsets.ModelViewSet):
         if not (board.creator == self.request.user or
                 board.board_members.filter(user=self.request.user, role='admin').exists()):
             raise PermissionDenied("Seul un admin peut ajouter des membres.")
-        serializer.save()
+        instance = serializer.save()
+        ws_broadcast(board.pk, {
+            'type': 'member.added',
+            'user_id': instance.user_id,
+            'role': instance.role,
+        })
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        ws_broadcast(instance.board_id, {
+            'type': 'member.updated',
+            'user_id': instance.user_id,
+            'role': instance.role,
+        })
 
     def perform_destroy(self, instance):
         board = instance.board
-        if not (board.creator == self.request.user or
-                board.board_members.filter(user=self.request.user, role='admin').exists()):
+        is_self_removal = instance.user == self.request.user
+        is_admin = (
+            board.creator == self.request.user or
+            board.board_members.filter(user=self.request.user, role='admin').exists()
+        )
+        if not (is_admin or is_self_removal):
             raise PermissionDenied("Seul un admin peut retirer des membres.")
+        board_id = board.pk
+        user_id = instance.user_id
         instance.delete()
+        ws_broadcast(board_id, {
+            'type': 'member.removed',
+            'user_id': user_id,
+        })
