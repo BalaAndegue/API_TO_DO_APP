@@ -7,6 +7,7 @@ from django.db.models import Q, F
 from django.db import transaction
 from Core.models import List
 from Core.serializers import ListSerializer
+from Core.ws_utils import ws_broadcast
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -80,7 +81,11 @@ class ListViewSet(viewsets.ModelViewSet):
         )
         if board.visibility != 'public' and not is_member:
             raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
-        serializer.save()
+        instance = serializer.save()
+        ws_broadcast(board.pk, {
+            'type': 'list.created',
+            'data': ListSerializer(instance).data,
+        })
 
     def perform_update(self, serializer):
         board = self.get_object().board
@@ -90,7 +95,11 @@ class ListViewSet(viewsets.ModelViewSet):
         )
         if not is_member:
             raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
-        serializer.save()
+        instance = serializer.save()
+        ws_broadcast(board.pk, {
+            'type': 'list.updated',
+            'data': ListSerializer(instance).data,
+        })
 
     def perform_destroy(self, instance):
         board = instance.board
@@ -100,7 +109,13 @@ class ListViewSet(viewsets.ModelViewSet):
         )
         if not is_admin:
             raise PermissionDenied("Seuls les admins peuvent supprimer une liste.")
+        board_id = board.pk
+        list_id = instance.pk
         instance.delete()
+        ws_broadcast(board_id, {
+            'type': 'list.deleted',
+            'data': {'list_id': list_id},
+        })
 
     @swagger_auto_schema(
         method='post',
@@ -159,4 +174,9 @@ class ListViewSet(viewsets.ModelViewSet):
             lst.position = new_position
             lst.save(update_fields=['position', 'updated_at'])
 
-        return Response({'success': True, 'data': ListSerializer(lst).data})
+        serialized = ListSerializer(lst).data
+        ws_broadcast(lst.board_id, {
+            'type': 'list.moved',
+            'data': serialized,
+        })
+        return Response({'success': True, 'data': serialized})

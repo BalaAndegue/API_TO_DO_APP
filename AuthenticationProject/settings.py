@@ -37,7 +37,10 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-_raw_hosts = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost,192.168.1.109')
+_raw_hosts = os.environ.get(
+    'DJANGO_ALLOWED_HOSTS',
+    '127.0.0.1,localhost,192.168.1.109,flowpilot-api.duckdns.org',
+)
 ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(',') if h.strip()]
 
 
@@ -185,8 +188,14 @@ REST_FRAMEWORK = {
 # CORS
 # ---------------------------------------------------------------------------
 
-_raw_cors = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5173')
-CORS_ALLOWED_ORIGINS = [o.strip() for o in _raw_cors.split(',') if o.strip()]
+# In DEBUG mode allow all origins so local dev and Vercel previews work without config.
+# In production set CORS_ALLOWED_ORIGINS env var to the exact frontend URL(s).
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    _raw_cors = os.environ.get('CORS_ALLOWED_ORIGINS', '')
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in _raw_cors.split(',') if o.strip()]
+
 CORS_ALLOW_ALL_HEADERS = True
 CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 CORS_ALLOW_CREDENTIALS = True
@@ -237,6 +246,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ---------------------------------------------------------------------------
 # Email (use App Password, not your real Gmail password)
 # ---------------------------------------------------------------------------
+
+# URL of the deployed frontend — used to build invitation accept links in emails.
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'

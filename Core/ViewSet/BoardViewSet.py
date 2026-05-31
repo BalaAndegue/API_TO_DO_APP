@@ -159,15 +159,16 @@ class BoardViewSet(viewsets.ModelViewSet):
         invitation = BoardInvitation.objects.create(board=board, inviter=request.user, email=email)
 
         try:
-            accept_url = f"{request.scheme}://{request.get_host()}/api/invitations/accept/"
+            frontend_url = settings.FRONTEND_URL.rstrip('/')
+            accept_url = f"{frontend_url}/invite/accept?token={invitation.token}"
+            sender_name = request.user.get_full_name() or request.user.username
             send_mail(
                 subject=f"Invitation au tableau « {board.name} »",
                 message=(
-                    f"{request.user.get_full_name() or request.user.username} vous invite à rejoindre"
-                    f" le tableau « {board.name} ».\n\n"
-                    f"Utilisez le token suivant via POST {accept_url} :\n"
-                    f"  token: {invitation.token}\n\n"
-                    "Cette invitation est valable 7 jours."
+                    f"{sender_name} vous invite à rejoindre le tableau « {board.name} ».\n\n"
+                    f"Cliquez sur ce lien pour accepter l'invitation :\n{accept_url}\n\n"
+                    "Ce lien est valable 7 jours.\n"
+                    "Si vous n'avez pas encore de compte FlowPilot, créez-en un d'abord."
                 ),
                 from_email=settings.EMAIL_HOST_USER,
                 recipient_list=[email],

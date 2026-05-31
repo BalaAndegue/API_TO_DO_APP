@@ -68,16 +68,14 @@ class BoardMemberViewSet(viewsets.ModelViewSet):
         instance = serializer.save()
         ws_broadcast(board.pk, {
             'type': 'member.added',
-            'user_id': instance.user_id,
-            'role': instance.role,
+            'data': BoardMemberSerializer(instance).data,
         })
 
     def perform_update(self, serializer):
         instance = serializer.save()
         ws_broadcast(instance.board_id, {
             'type': 'member.updated',
-            'user_id': instance.user_id,
-            'role': instance.role,
+            'data': BoardMemberSerializer(instance).data,
         })
 
     def perform_destroy(self, instance):
@@ -90,9 +88,9 @@ class BoardMemberViewSet(viewsets.ModelViewSet):
         if not (is_admin or is_self_removal):
             raise PermissionDenied("Seul un admin peut retirer des membres.")
         board_id = board.pk
-        user_id = instance.user_id
+        member_id = instance.pk
         instance.delete()
         ws_broadcast(board_id, {
             'type': 'member.removed',
-            'user_id': user_id,
+            'data': {'member_id': member_id},
         })

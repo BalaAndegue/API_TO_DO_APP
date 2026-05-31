@@ -7,6 +7,7 @@ from django.db.models import Q, F
 from django.db import transaction
 from Core.models import Card, List
 from Core.serializers import CardSerializer
+from Core.ws_utils import ws_broadcast
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -102,7 +103,11 @@ class CardViewSet(viewsets.ModelViewSet):
         )
         if board.visibility != 'public' and not is_member:
             raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
-        serializer.save(board=board)
+        instance = serializer.save(board=board)
+        ws_broadcast(board.pk, {
+            'type': 'card.created',
+            'data': CardSerializer(instance).data,
+        })
 
     def perform_update(self, serializer):
         board = self.get_object().board
@@ -112,7 +117,11 @@ class CardViewSet(viewsets.ModelViewSet):
         )
         if not is_member:
             raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
-        serializer.save()
+        instance = serializer.save()
+        ws_broadcast(instance.board_id, {
+            'type': 'card.updated',
+            'data': CardSerializer(instance).data,
+        })
 
     def perform_destroy(self, instance):
         board = instance.board
@@ -122,7 +131,13 @@ class CardViewSet(viewsets.ModelViewSet):
         )
         if not is_member:
             raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+        board_id = board.pk
+        card_id = instance.pk
         instance.delete()
+        ws_broadcast(board_id, {
+            'type': 'card.deleted',
+            'data': {'card_id': card_id},
+        })
 
     @swagger_auto_schema(
         method='post',
@@ -167,7 +182,6 @@ class CardViewSet(viewsets.ModelViewSet):
             old_position = card.position
 
             if new_list_id and int(new_list_id) != old_list_id:
-                # ── Cross-list move ──────────────────────────────────────────
                 try:
                     new_list = List.objects.select_related('board').get(pk=new_list_id)
                 except List.DoesNotExist:
@@ -180,39 +194,38 @@ class CardViewSet(viewsets.ModelViewSet):
                         {'success': False, 'message': "Impossible de déplacer vers un tableau différent."},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-                # Close the gap in the source list
                 Card.objects.filter(
                     list_id=old_list_id, position__gt=old_position
                 ).update(position=F('position') - 1)
-                # Open a slot in the destination list
                 Card.objects.filter(
                     list_id=new_list_id, position__gte=new_position
                 ).update(position=F('position') + 1)
                 card.list = new_list
             else:
-                # ── Same-list move ───────────────────────────────────────────
                 if new_position < old_position:
-                    # Moving up: shift intermediate cards down
                     Card.objects.filter(
                         list_id=old_list_id,
                         position__gte=new_position,
                         position__lt=old_position,
                     ).exclude(pk=card.pk).update(position=F('position') + 1)
                 elif new_position > old_position:
-                    # Moving down: shift intermediate cards up
                     Card.objects.filter(
                         list_id=old_list_id,
                         position__gt=old_position,
                         position__lte=new_position,
                     ).exclude(pk=card.pk).update(position=F('position') - 1)
                 else:
-                    # No-op
                     return Response({'success': True, 'data': CardSerializer(card).data})
 
             card.position = new_position
             card.save(update_fields=['list', 'position', 'updated_at'])
 
-        return Response({'success': True, 'data': CardSerializer(card).data})
+        serialized = CardSerializer(card).data
+        ws_broadcast(card.board_id, {
+            'type': 'card.moved',
+            'data': serialized,
+        })
+        return Response({'success': True, 'data': serialized})
 
     @swagger_auto_schema(
         method='post',
@@ -227,6 +240,10 @@ class CardViewSet(viewsets.ModelViewSet):
         card = self.get_object()
         card.archived = True
         card.save(update_fields=['archived', 'updated_at'])
+        ws_broadcast(card.board_id, {
+            'type': 'card.updated',
+            'data': CardSerializer(card).data,
+        })
         return Response({'success': True, 'message': "Carte archivée."})
 
     @swagger_auto_schema(
@@ -242,4 +259,8 @@ class CardViewSet(viewsets.ModelViewSet):
         card = self.get_object()
         card.archived = False
         card.save(update_fields=['archived', 'updated_at'])
+        ws_broadcast(card.board_id, {
+            'type': 'card.updated',
+            'data': CardSerializer(card).data,
+        })
         return Response({'success': True, 'message': "Carte restaurée."})

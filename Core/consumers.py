@@ -7,32 +7,22 @@ Connection URL:
 Channel group:
     board_<board_id>   — one group per board, all members share it
 
-Events broadcast (type → payload):
-    card.moved        { card_id, list_id, position }
-    card.created      { card_id, list_id, title }
-    card.updated      { card_id, fields: {...} }
-    card.deleted      { card_id }
-    list.moved        { list_id, position }
-    list.created      { list_id, board_id, name }
-    list.updated      { list_id, fields: {...} }
-    list.deleted      { list_id }
-    comment.created   { comment_id, card_id, user_id }
-    comment.updated   { comment_id, card_id }
-    comment.deleted   { comment_id, card_id }
-    member.added      { user_id, role }
-    member.removed    { user_id }
-    member.updated    { user_id, role }
-    board.updated     { board_id, fields: {...} }
-
-Frontend usage (JavaScript):
-    const ws = new WebSocket(`ws://localhost:8000/ws/boards/1/?token=${token}`);
-    ws.onmessage = (e) => {
-        const { type, ...payload } = JSON.parse(e.data);
-        // dispatch to your state management
-    };
-
-    // Send a move event after DnD:
-    ws.send(JSON.stringify({ type: 'card.move', card_id: 5, list_id: 2, position: 1 }));
+Events broadcast to the client (type → payload shape):
+    card_created    { type, data: Card }
+    card_updated    { type, data: Card }
+    card_moved      { type, data: Card }
+    card_deleted    { type, data: { card_id } }
+    list_created    { type, data: List }
+    list_updated    { type, data: List }
+    list_moved      { type, data: List }
+    list_deleted    { type, data: { list_id } }
+    comment_created { type, data: Comment }
+    comment_updated { type, data: Comment }
+    comment_deleted { type, data: { comment_id, card_id } }
+    member_added    { type, data: BoardMember }
+    member_updated  { type, data: BoardMember }
+    member_removed  { type, data: { member_id } }
+    board_updated   { type, data: { board_id, fields } }
 """
 
 import json
@@ -66,7 +56,6 @@ class BoardConsumer(AsyncWebsocketConsumer):
         self.group_name = f'board_{self.board_id}'
         user            = self.scope.get('user')
 
-        # Reject unauthenticated / unauthorized connections immediately
         if isinstance(user, AnonymousUser) or not await _can_access_board(user, self.board_id):
             await self.close(code=4003)
             return
@@ -79,8 +68,6 @@ class BoardConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
         logger.debug("WS disconnect: board=%s code=%s", self.board_id, code)
 
-    # ── Messages received from the client ─────────────────────────────────────
-
     async def receive(self, text_data=None, bytes_data=None):
         try:
             data = json.loads(text_data or '{}')
@@ -91,117 +78,70 @@ class BoardConsumer(AsyncWebsocketConsumer):
         if not event_type:
             return
 
-        # Forward to the group so every member sees the change
         await self.channel_layer.group_send(
             self.group_name,
             {'type': event_type.replace('.', '_'), **data},
         )
 
-    # ── Handlers for group messages (one per event type) ──────────────────────
-    # Each handler must match the "type" key with dots replaced by underscores.
+    # ── Generic forwarder — sends {type, data} to the client ─────────────────
 
-    async def card_moved(self, event):
+    async def _forward(self, event_type, event):
         await self.send(text_data=json.dumps({
-            'type': 'card.moved',
-            'card_id':  event['card_id'],
-            'list_id':  event['list_id'],
-            'position': event['position'],
+            'type': event_type,
+            'data': event.get('data'),
         }))
+
+    # ── Card events ───────────────────────────────────────────────────────────
 
     async def card_created(self, event):
-        await self.send(text_data=json.dumps({
-            'type': 'card.created',
-            'card_id': event['card_id'],
-            'list_id': event['list_id'],
-            'title':   event['title'],
-        }))
+        await self._forward('card_created', event)
 
     async def card_updated(self, event):
-        await self.send(text_data=json.dumps({
-            'type':    'card.updated',
-            'card_id': event['card_id'],
-            'fields':  event.get('fields', {}),
-        }))
+        await self._forward('card_updated', event)
+
+    async def card_moved(self, event):
+        await self._forward('card_moved', event)
 
     async def card_deleted(self, event):
-        await self.send(text_data=json.dumps({
-            'type':    'card.deleted',
-            'card_id': event['card_id'],
-        }))
+        await self._forward('card_deleted', event)
 
-    async def list_moved(self, event):
-        await self.send(text_data=json.dumps({
-            'type':     'list.moved',
-            'list_id':  event['list_id'],
-            'position': event['position'],
-        }))
+    # ── List events ───────────────────────────────────────────────────────────
 
     async def list_created(self, event):
-        await self.send(text_data=json.dumps({
-            'type':     'list.created',
-            'list_id':  event['list_id'],
-            'board_id': event['board_id'],
-            'name':     event['name'],
-        }))
+        await self._forward('list_created', event)
 
     async def list_updated(self, event):
-        await self.send(text_data=json.dumps({
-            'type':    'list.updated',
-            'list_id': event['list_id'],
-            'fields':  event.get('fields', {}),
-        }))
+        await self._forward('list_updated', event)
+
+    async def list_moved(self, event):
+        await self._forward('list_moved', event)
 
     async def list_deleted(self, event):
-        await self.send(text_data=json.dumps({
-            'type':    'list.deleted',
-            'list_id': event['list_id'],
-        }))
+        await self._forward('list_deleted', event)
+
+    # ── Comment events ────────────────────────────────────────────────────────
 
     async def comment_created(self, event):
-        await self.send(text_data=json.dumps({
-            'type':       'comment.created',
-            'comment_id': event['comment_id'],
-            'card_id':    event['card_id'],
-            'user_id':    event['user_id'],
-        }))
+        await self._forward('comment_created', event)
 
     async def comment_updated(self, event):
-        await self.send(text_data=json.dumps({
-            'type':       'comment.updated',
-            'comment_id': event['comment_id'],
-            'card_id':    event['card_id'],
-        }))
+        await self._forward('comment_updated', event)
 
     async def comment_deleted(self, event):
-        await self.send(text_data=json.dumps({
-            'type':       'comment.deleted',
-            'comment_id': event['comment_id'],
-            'card_id':    event['card_id'],
-        }))
+        await self._forward('comment_deleted', event)
+
+    # ── Member events ─────────────────────────────────────────────────────────
 
     async def member_added(self, event):
-        await self.send(text_data=json.dumps({
-            'type':    'member.added',
-            'user_id': event['user_id'],
-            'role':    event['role'],
-        }))
-
-    async def member_removed(self, event):
-        await self.send(text_data=json.dumps({
-            'type':    'member.removed',
-            'user_id': event['user_id'],
-        }))
+        await self._forward('member_added', event)
 
     async def member_updated(self, event):
-        await self.send(text_data=json.dumps({
-            'type':    'member.updated',
-            'user_id': event['user_id'],
-            'role':    event['role'],
-        }))
+        await self._forward('member_updated', event)
+
+    async def member_removed(self, event):
+        await self._forward('member_removed', event)
+
+    # ── Board events ──────────────────────────────────────────────────────────
 
     async def board_updated(self, event):
-        await self.send(text_data=json.dumps({
-            'type':     'board.updated',
-            'board_id': event['board_id'],
-            'fields':   event.get('fields', {}),
-        }))
+        await self._forward('board_updated', event)

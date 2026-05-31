@@ -82,9 +82,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         instance = serializer.save(user=self.request.user)
         ws_broadcast(instance.card.board_id, {
             'type': 'comment.created',
-            'comment_id': instance.pk,
-            'card_id': instance.card_id,
-            'user_id': instance.user_id,
+            'data': CommentSerializer(instance).data,
         })
 
     def perform_update(self, serializer):
@@ -100,8 +98,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         instance = serializer.save()
         ws_broadcast(instance.card.board_id, {
             'type': 'comment.updated',
-            'comment_id': instance.pk,
-            'card_id': instance.card_id,
+            'data': CommentSerializer(instance).data,
         })
 
     def perform_destroy(self, instance):
@@ -119,6 +116,5 @@ class CommentViewSet(viewsets.ModelViewSet):
         instance.delete()
         ws_broadcast(board_id, {
             'type': 'comment.deleted',
-            'comment_id': comment_id,
-            'card_id': card_id,
+            'data': {'comment_id': comment_id, 'card_id': card_id},
         })
