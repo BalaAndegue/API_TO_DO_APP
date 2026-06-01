@@ -2,25 +2,25 @@
 ASGI config — supports HTTP and WebSocket (Django Channels).
 
 Development:
-    python manage.py runserver        (Channels uses ASGI_APPLICATION automatically)
+    python manage.py runserver
 
-Production (install daphne first):
-    pip install daphne
+Production:
     daphne -b 0.0.0.0 -p 8000 AuthenticationProject.asgi:application
-
-For multi-process production, use Redis channel layer:
-    pip install channels-redis
-    See CHANNEL_LAYERS in settings.py
 """
 
 import os
-from django.core.asgi import get_asgi_application
-from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.security.websocket import AllowedHostsOriginValidator
-from Core.middleware import TokenAuthMiddleware
-import Core.routing
+import django
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'AuthenticationProject.settings')
+
+# django.setup() must be called before any app-level imports (models, middleware…)
+django.setup()
+
+from django.core.asgi import get_asgi_application          # noqa: E402
+from channels.routing import ProtocolTypeRouter, URLRouter  # noqa: E402
+from channels.security.websocket import AllowedHostsOriginValidator  # noqa: E402
+from Core.middleware import TokenAuthMiddleware              # noqa: E402
+import Core.routing                                         # noqa: E402
 
 django_asgi_app = get_asgi_application()
 

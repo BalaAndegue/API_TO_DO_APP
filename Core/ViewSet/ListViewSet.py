@@ -180,3 +180,56 @@ class ListViewSet(viewsets.ModelViewSet):
             'data': serialized,
         })
         return Response({'success': True, 'data': serialized})
+
+    @swagger_auto_schema(
+        method='post',
+        request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={}),
+        responses={200: 'Toutes les cartes archivées.'},
+        operation_summary='Archiver toutes les cartes de la liste',
+        operation_description='Masque toutes les cartes actives de la liste sans les supprimer.',
+        tags=['Lists'],
+    )
+    @action(detail=True, methods=['post'], url_path='archive-cards')
+    def archive_cards(self, request, pk=None):
+        lst = self.get_object()
+        board = lst.board
+        is_member = (
+            board.creator == request.user or
+            board.board_members.filter(user=request.user).exists()
+        )
+        if not is_member:
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+        lst.cards.filter(archived=False).update(archived=True)
+        ws_broadcast(board.pk, {
+            'type': 'list.updated',
+            'data': ListSerializer(lst).data,
+        })
+        return Response({'success': True, 'message': "Toutes les cartes ont été archivées."})
+
+    @swagger_auto_schema(
+        method='post',
+        request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={}),
+        responses={200: 'Liste archivée.'},
+        operation_summary='Archiver la liste',
+        operation_description='Masque la liste et ses cartes sans les supprimer.',
+        tags=['Lists'],
+    )
+    @action(detail=True, methods=['post'])
+    def archive(self, request, pk=None):
+        lst = self.get_object()
+        board = lst.board
+        is_member = (
+            board.creator == request.user or
+            board.board_members.filter(user=request.user).exists()
+        )
+        if not is_member:
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+        lst.archived = True
+        lst.save(update_fields=['archived', 'updated_at'])
+        board_id = board.pk
+        list_id = lst.pk
+        ws_broadcast(board_id, {
+            'type': 'list.deleted',
+            'data': {'list_id': list_id},
+        })
+        return Response({'success': True, 'message': "Liste archivée."})

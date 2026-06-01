@@ -264,3 +264,44 @@ class CardViewSet(viewsets.ModelViewSet):
             'data': CardSerializer(card).data,
         })
         return Response({'success': True, 'message': "Carte restaurée."})
+
+    @swagger_auto_schema(
+        method='post',
+        request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={}),
+        responses={201: CardSerializer},
+        operation_summary='Copier une carte',
+        operation_description=(
+            'Crée une copie de la carte (titre, description, due_date) dans la même liste. '
+            'Les checklists, labels et membres ne sont pas copiés.'
+        ),
+        tags=['Cards'],
+    )
+    @action(detail=True, methods=['post'])
+    def copy(self, request, pk=None):
+        card = self.get_object()
+        board = card.board
+        is_member = (
+            board.creator == request.user or
+            board.board_members.filter(user=request.user).exists()
+        )
+        if not is_member:
+            raise PermissionDenied("Vous n'êtes pas membre de ce tableau.")
+        # Insert copy after the original card
+        Card.objects.filter(
+            list_id=card.list_id, position__gt=card.position
+        ).update(position=F('position') + 1)
+        copy = Card.objects.create(
+            title=f"{card.title} (copie)",
+            description=card.description,
+            list=card.list,
+            board=board,
+            position=card.position + 1,
+            due_date=card.due_date,
+            start_date=card.start_date,
+        )
+        serialized = CardSerializer(copy).data
+        ws_broadcast(board.pk, {
+            'type': 'card.created',
+            'data': serialized,
+        })
+        return Response({'success': True, 'data': serialized}, status=status.HTTP_201_CREATED)
