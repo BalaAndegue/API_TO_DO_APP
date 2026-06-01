@@ -1,6 +1,6 @@
 # 🎯 Objectif aujourd'hui :
 
-Créer les endpoints pour les tâches (Task) :
+Créer les endpoints pour les tâches (Task) : utilisant Kanban
 
 * 📥 Créer une tâche
 
