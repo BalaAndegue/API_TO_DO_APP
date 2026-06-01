@@ -115,7 +115,7 @@ REST_FRAMEWORK = {
 }
 ```
 
-L'utilisateur doit être connecté pour accéder aux endpoints.
+L'utilisateur doit être connecté pour accéder aux endpoints et effectuer des operations diverses.
 
 ---
 
