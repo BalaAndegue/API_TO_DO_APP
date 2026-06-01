@@ -1,6 +1,6 @@
 # 🎯 Objectif aujourd'hui :
 
-Créer les endpoints pour les tâches (Task) :
+Créer les endpoints pour les tâches (Task) : utilisant Kanban
 
 * 📥 Créer une tâche
 
@@ -115,7 +115,7 @@ REST_FRAMEWORK = {
 }
 ```
 
-L'utilisateur doit être connecté pour accéder aux endpoints.
+L'utilisateur doit être connecté pour accéder aux endpoints et effectuer des operations diverses.
 
 ---
 
